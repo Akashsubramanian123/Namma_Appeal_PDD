@@ -1,0 +1,14 @@
+<svg width="60" height="80" viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="10" width="40" height="60" rx="4" fill="url(#grad3)" opacity="0.08"/>
+    <rect x="10" y="10" width="40" height="60" rx="4" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.15"/>
+    <line x1="20" y1="25" x2="30" y2="25" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <line x1="20" y1="35" x2="40" y2="35" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <line x1="20" y1="45" x2="40" y2="45" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <line x1="20" y1="55" x2="35" y2="55" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <defs>
+        <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1" />
+            <stop offset="100%" stop-color="#93C5FD" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+</svg>

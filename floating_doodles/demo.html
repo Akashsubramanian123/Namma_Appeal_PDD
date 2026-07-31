@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Premium Floating RTI Doodles Demo</title>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background: #0f172a; /* Dark background to contrast the glassmorphism */
+        overflow: hidden;
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+    .glass-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        max-width: 800px;
+        height: 60%;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    .glass-content h1 {
+        font-weight: 300;
+        letter-spacing: 2px;
+        background: linear-gradient(to right, #93C5FD, #FFFFFF);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .floating-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 1;
+    }
+    
+    /* Animation Keyframes */
+    @keyframes float-1 {
+        0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+        33% { transform: translate(30px, -50px) rotate(3deg) scale(1.02); }
+        66% { transform: translate(-20px, 20px) rotate(-2deg) scale(0.98); }
+        100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    }
+    @keyframes float-2 {
+        0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+        33% { transform: translate(-40px, 30px) rotate(-4deg) scale(0.99); }
+        66% { transform: translate(20px, -40px) rotate(2deg) scale(1.03); }
+        100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    }
+    @keyframes float-3 {
+        0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+        33% { transform: translate(50px, 40px) rotate(3deg) scale(1.01); }
+        66% { transform: translate(-30px, -30px) rotate(-3deg) scale(0.99); }
+        100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    }
+    
+    .doodle {
+        position: absolute;
+    }
+</style>
+</head>
+<body>
+
+    <div class="glass-container">
+        <div class="glass-content">
+            <h1>RTI ANALYSIS DASHBOARD</h1>
+        </div>
+    </div>
+
+    <div class="floating-layer">
+
+        <div class="doodle" style="left: -6.998709373279968%; top: 23.00351820429431%; width: 83.48161072232341px; height: 83.48161072232341px; animation: float-3 27.04990352343015s ease-in-out -33.330048510045415s infinite;">
+            <svg width="100%" height="100%" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <g transform="rotate(30 40 40)">
+        <rect x="25" y="20" width="30" height="15" rx="3" fill="none" stroke="#60A5FA" stroke-width="4" opacity="0.15"/>
+        <line x1="40" y1="35" x2="40" y2="65" stroke="#60A5FA" stroke-width="6" stroke-linecap="round" opacity="0.15"/>
+        <line x1="20" y1="27.5" x2="25" y2="27.5" stroke="#60A5FA" stroke-width="4" stroke-linecap="round" opacity="0.15"/>
+        <line x1="55" y1="27.5" x2="60" y2="27.5" stroke="#60A5FA" stroke-width="4" stroke-linecap="round" opacity="0.15"/>
+        <rect x="20" y="70" width="40" height="5" rx="2" fill="#60A5FA" opacity="0.1"/>
+    </g>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 0.4326599155299391%; top: 40.630618362232454%; width: 54.46958291571055px; height: 54.46958291571055px; animation: float-1 29.653217867814792s ease-in-out -27.090842807249114s infinite;">
+            <svg width="100%" height="100%" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="40" cy="40" r="30" fill="none" stroke="#2563EB" stroke-width="2" stroke-dasharray="6,4" opacity="0.12"/>
+    <circle cx="40" cy="40" r="22" fill="none" stroke="#2563EB" stroke-width="3" opacity="0.15"/>
+    <path d="M 25 40 L 40 25 L 55 40 L 40 55 Z" fill="url(#grad5)" opacity="0.1"/>
+    <path d="M 25 40 L 40 25 L 55 40 L 40 55 Z" fill="none" stroke="#2563EB" stroke-width="2" stroke-linejoin="round" opacity="0.12"/>
+    <defs>
+        <linearGradient id="grad5" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2563EB" stop-opacity="1" />
+            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 13.860518082397817%; top: 67.98613253354279%; width: 131.7412220904825px; height: 131.7412220904825px; animation: float-1 33.98418092567707s ease-in-out -12.518581870379823s infinite;">
+            <svg width="100%" height="100%" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="40" cy="40" r="30" fill="none" stroke="#2563EB" stroke-width="2" stroke-dasharray="6,4" opacity="0.12"/>
+    <circle cx="40" cy="40" r="22" fill="none" stroke="#2563EB" stroke-width="3" opacity="0.15"/>
+    <path d="M 25 40 L 40 25 L 55 40 L 40 55 Z" fill="url(#grad5)" opacity="0.1"/>
+    <path d="M 25 40 L 40 25 L 55 40 L 40 55 Z" fill="none" stroke="#2563EB" stroke-width="2" stroke-linejoin="round" opacity="0.12"/>
+    <defs>
+        <linearGradient id="grad5" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2563EB" stop-opacity="1" />
+            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 81.05688405557207%; top: 9.159117965226816%; width: 113.39215972302537px; height: 113.39215972302537px; animation: float-2 28.10958999623563s ease-in-out -43.07458824930515s infinite;">
+            <svg width="100%" height="100%" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <path d="M 40 10 L 40 70 M 20 30 L 60 30 M 20 30 L 10 50 L 30 50 Z M 60 30 L 50 50 L 70 50 Z M 25 70 L 55 70" fill="none" stroke="#2563EB" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.12"/>
+    <defs>
+        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2563EB" stop-opacity="0.15" />
+            <stop offset="100%" stop-color="#60A5FA" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+    <path d="M 10 50 C 15 60 25 60 30 50 Z" fill="url(#grad1)"/>
+    <path d="M 50 50 C 55 60 65 60 70 50 Z" fill="url(#grad1)"/>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 2.265233182381845%; top: 35.59127607648048%; width: 103.84690707269426px; height: 103.84690707269426px; animation: float-2 37.07452062733782s ease-in-out -36.32077229734711s infinite;">
+            <svg width="100%" height="100%" width="70" height="80" viewBox="0 0 70 80" xmlns="http://www.w3.org/2000/svg">
+    <path d="M 35 10 L 10 20 L 10 40 C 10 60, 35 70, 35 70 C 35 70, 60 60, 60 40 L 60 20 Z" fill="url(#grad4)" opacity="0.1"/>
+    <path d="M 35 10 L 10 20 L 10 40 C 10 60, 35 70, 35 70 C 35 70, 60 60, 60 40 L 60 20 Z" fill="none" stroke="#2563EB" stroke-width="3" stroke-linejoin="round" opacity="0.15"/>
+    <path d="M 25 40 L 32 47 L 45 30" fill="none" stroke="#2563EB" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.15"/>
+    <defs>
+        <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2563EB" stop-opacity="1" />
+            <stop offset="100%" stop-color="#60A5FA" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 54.347370974564086%; top: 106.77389167752447%; width: 106.78015658125302px; height: 106.78015658125302px; animation: float-3 30.863565628141856s ease-in-out -28.288790977249953s infinite;">
+            <svg width="100%" height="100%" width="80" height="70" viewBox="0 0 80 70" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="25" width="60" height="40" rx="4" fill="none" stroke="#60A5FA" stroke-width="3" opacity="0.15"/>
+    <path d="M 30 25 L 30 15 C 30 10, 50 10, 50 15 L 50 25" fill="none" stroke="#60A5FA" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <line x1="10" y1="35" x2="70" y2="35" stroke="#60A5FA" stroke-width="3" opacity="0.15"/>
+    <rect x="35" y="30" width="10" height="10" rx="2" fill="#60A5FA" opacity="0.12"/>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 59.28225743081144%; top: 74.54862034579082%; width: 56.87365754834933px; height: 56.87365754834933px; animation: float-1 40.461366815773836s ease-in-out -44.3349684297341s infinite;">
+            <svg width="100%" height="100%" width="70" height="80" viewBox="0 0 70 80" xmlns="http://www.w3.org/2000/svg">
+    <path d="M 35 10 L 10 20 L 10 40 C 10 60, 35 70, 35 70 C 35 70, 60 60, 60 40 L 60 20 Z" fill="url(#grad4)" opacity="0.1"/>
+    <path d="M 35 10 L 10 20 L 10 40 C 10 60, 35 70, 35 70 C 35 70, 60 60, 60 40 L 60 20 Z" fill="none" stroke="#2563EB" stroke-width="3" stroke-linejoin="round" opacity="0.15"/>
+    <path d="M 25 40 L 32 47 L 45 30" fill="none" stroke="#2563EB" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.15"/>
+    <defs>
+        <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2563EB" stop-opacity="1" />
+            <stop offset="100%" stop-color="#60A5FA" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 93.97804001063236%; top: 35.615147004699935%; width: 118.01154535526533px; height: 118.01154535526533px; animation: float-2 28.253081943121696s ease-in-out -15.987181510238468s infinite;">
+            <svg width="100%" height="100%" width="60" height="80" viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="10" width="40" height="60" rx="4" fill="url(#grad3)" opacity="0.08"/>
+    <rect x="10" y="10" width="40" height="60" rx="4" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.15"/>
+    <line x1="20" y1="25" x2="30" y2="25" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <line x1="20" y1="35" x2="40" y2="35" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <line x1="20" y1="45" x2="40" y2="45" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <line x1="20" y1="55" x2="35" y2="55" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <defs>
+        <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1" />
+            <stop offset="100%" stop-color="#93C5FD" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 74.21843761502616%; top: 72.02571986440007%; width: 60.71037643678225px; height: 60.71037643678225px; animation: float-3 28.42277296396194s ease-in-out -32.810705907765715s infinite;">
+            <svg width="100%" height="100%" width="80" height="70" viewBox="0 0 80 70" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="40" cy="25" r="12" fill="none" stroke="#60A5FA" stroke-width="3" opacity="0.15"/>
+    <path d="M 20 60 C 20 45, 60 45, 60 60" fill="none" stroke="#60A5FA" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <circle cx="20" cy="35" r="8" fill="none" stroke="#2563EB" stroke-width="2.5" opacity="0.12"/>
+    <path d="M 5 65 C 5 55, 30 55, 30 65" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+    <circle cx="60" cy="35" r="8" fill="none" stroke="#2563EB" stroke-width="2.5" opacity="0.12"/>
+    <path d="M 50 65 C 50 55, 75 55, 75 65" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 45.47122542213389%; top: 22.39373921411336%; width: 188.80867694318266px; height: 188.80867694318266px; animation: float-3 36.138994875492926s ease-in-out -30.807641294544357s infinite;">
+            <svg width="100%" height="100%" width="70" height="90" viewBox="0 0 70 90" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="35,10 10,30 60,30" fill="url(#grad2)" opacity="0.1"/>
+    <polygon points="35,10 10,30 60,30" fill="none" stroke="#93C5FD" stroke-width="3" stroke-linejoin="round" opacity="0.15"/>
+    <line x1="20" y1="30" x2="20" y2="70" stroke="#93C5FD" stroke-width="6" stroke-linecap="square" opacity="0.12"/>
+    <line x1="35" y1="30" x2="35" y2="70" stroke="#93C5FD" stroke-width="6" stroke-linecap="square" opacity="0.12"/>
+    <line x1="50" y1="30" x2="50" y2="70" stroke="#93C5FD" stroke-width="6" stroke-linecap="square" opacity="0.12"/>
+    <rect x="5" y="70" width="60" height="10" fill="none" stroke="#93C5FD" stroke-width="3" opacity="0.15"/>
+    <defs>
+        <linearGradient id="grad2" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#93C5FD" stop-opacity="1" />
+            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 17.485768635692523%; top: -6.147970731515469%; width: 97.31795720886228px; height: 97.31795720886228px; animation: float-2 26.323772104230944s ease-in-out -41.09112558834953s infinite;">
+            <svg width="100%" height="100%" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <path d="M 40 10 L 40 70 M 20 30 L 60 30 M 20 30 L 10 50 L 30 50 Z M 60 30 L 50 50 L 70 50 Z M 25 70 L 55 70" fill="none" stroke="#2563EB" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.12"/>
+    <defs>
+        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2563EB" stop-opacity="0.15" />
+            <stop offset="100%" stop-color="#60A5FA" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+    <path d="M 10 50 C 15 60 25 60 30 50 Z" fill="url(#grad1)"/>
+    <path d="M 50 50 C 55 60 65 60 70 50 Z" fill="url(#grad1)"/>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 95.16411517672026%; top: 27.761345695817347%; width: 148.31579979423202px; height: 148.31579979423202px; animation: float-2 42.69366307773405s ease-in-out -28.92833415901909s infinite;">
+            <svg width="100%" height="100%" width="70" height="70" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="35" cy="35" r="30" fill="url(#grad6)" opacity="0.08"/>
+    <path d="M 20 35 L 30 45 L 50 25" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.15"/>
+    <defs>
+        <linearGradient id="grad6" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1" />
+            <stop offset="100%" stop-color="#93C5FD" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 21.785619979766295%; top: 19.595300923278014%; width: 134.20522012447262px; height: 134.20522012447262px; animation: float-2 39.940276233045154s ease-in-out -19.279522228256084s infinite;">
+            <svg width="100%" height="100%" width="70" height="90" viewBox="0 0 70 90" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="35,10 10,30 60,30" fill="url(#grad2)" opacity="0.1"/>
+    <polygon points="35,10 10,30 60,30" fill="none" stroke="#93C5FD" stroke-width="3" stroke-linejoin="round" opacity="0.15"/>
+    <line x1="20" y1="30" x2="20" y2="70" stroke="#93C5FD" stroke-width="6" stroke-linecap="square" opacity="0.12"/>
+    <line x1="35" y1="30" x2="35" y2="70" stroke="#93C5FD" stroke-width="6" stroke-linecap="square" opacity="0.12"/>
+    <line x1="50" y1="30" x2="50" y2="70" stroke="#93C5FD" stroke-width="6" stroke-linecap="square" opacity="0.12"/>
+    <rect x="5" y="70" width="60" height="10" fill="none" stroke="#93C5FD" stroke-width="3" opacity="0.15"/>
+    <defs>
+        <linearGradient id="grad2" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#93C5FD" stop-opacity="1" />
+            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 37.928060616847674%; top: 16.318491098874%; width: 199.63064097426653px; height: 199.63064097426653px; animation: float-3 34.87031669779262s ease-in-out -34.0101970890182s infinite;">
+            <svg width="100%" height="100%" width="70" height="70" viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="35" cy="35" r="30" fill="url(#grad6)" opacity="0.08"/>
+    <path d="M 20 35 L 30 45 L 50 25" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.15"/>
+    <defs>
+        <linearGradient id="grad6" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1" />
+            <stop offset="100%" stop-color="#93C5FD" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 8.340958321791327%; top: 9.197840206694032%; width: 152.07218202444906px; height: 152.07218202444906px; animation: float-3 26.270554123039144s ease-in-out -17.172867892794155s infinite;">
+            <svg width="100%" height="100%" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <g transform="rotate(30 40 40)">
+        <rect x="25" y="20" width="30" height="15" rx="3" fill="none" stroke="#60A5FA" stroke-width="4" opacity="0.15"/>
+        <line x1="40" y1="35" x2="40" y2="65" stroke="#60A5FA" stroke-width="6" stroke-linecap="round" opacity="0.15"/>
+        <line x1="20" y1="27.5" x2="25" y2="27.5" stroke="#60A5FA" stroke-width="4" stroke-linecap="round" opacity="0.15"/>
+        <line x1="55" y1="27.5" x2="60" y2="27.5" stroke="#60A5FA" stroke-width="4" stroke-linecap="round" opacity="0.15"/>
+        <rect x="20" y="70" width="40" height="5" rx="2" fill="#60A5FA" opacity="0.1"/>
+    </g>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 53.493721411896445%; top: 106.52940531363417%; width: 179.1169553351747px; height: 179.1169553351747px; animation: float-1 38.60566820513037s ease-in-out -5.154828434265899s infinite;">
+            <svg width="100%" height="100%" width="80" height="70" viewBox="0 0 80 70" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="25" width="60" height="40" rx="4" fill="none" stroke="#60A5FA" stroke-width="3" opacity="0.15"/>
+    <path d="M 30 25 L 30 15 C 30 10, 50 10, 50 15 L 50 25" fill="none" stroke="#60A5FA" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <line x1="10" y1="35" x2="70" y2="35" stroke="#60A5FA" stroke-width="3" opacity="0.15"/>
+    <rect x="35" y="30" width="10" height="10" rx="2" fill="#60A5FA" opacity="0.12"/>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 80.10533595099317%; top: 82.23184791889351%; width: 101.02632095465678px; height: 101.02632095465678px; animation: float-2 33.6953050133821s ease-in-out -20.41756678481429s infinite;">
+            <svg width="100%" height="100%" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="40" cy="40" r="30" fill="none" stroke="#2563EB" stroke-width="2" stroke-dasharray="6,4" opacity="0.12"/>
+    <circle cx="40" cy="40" r="22" fill="none" stroke="#2563EB" stroke-width="3" opacity="0.15"/>
+    <path d="M 25 40 L 40 25 L 55 40 L 40 55 Z" fill="url(#grad5)" opacity="0.1"/>
+    <path d="M 25 40 L 40 25 L 55 40 L 40 55 Z" fill="none" stroke="#2563EB" stroke-width="2" stroke-linejoin="round" opacity="0.12"/>
+    <defs>
+        <linearGradient id="grad5" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2563EB" stop-opacity="1" />
+            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 106.62657186441372%; top: 81.43546388624776%; width: 126.15225119064878px; height: 126.15225119064878px; animation: float-1 42.41037139673534s ease-in-out -13.43001561518848s infinite;">
+            <svg width="100%" height="100%" width="80" height="70" viewBox="0 0 80 70" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="40" cy="25" r="12" fill="none" stroke="#60A5FA" stroke-width="3" opacity="0.15"/>
+    <path d="M 20 60 C 20 45, 60 45, 60 60" fill="none" stroke="#60A5FA" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <circle cx="20" cy="35" r="8" fill="none" stroke="#2563EB" stroke-width="2.5" opacity="0.12"/>
+    <path d="M 5 65 C 5 55, 30 55, 30 65" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+    <circle cx="60" cy="35" r="8" fill="none" stroke="#2563EB" stroke-width="2.5" opacity="0.12"/>
+    <path d="M 50 65 C 50 55, 75 55, 75 65" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 63.07642537258067%; top: 8.340712225956178%; width: 164.37662001127268px; height: 164.37662001127268px; animation: float-3 44.06999495307005s ease-in-out -41.509533627822364s infinite;">
+            <svg width="100%" height="100%" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="40" cy="40" r="30" fill="none" stroke="#2563EB" stroke-width="2" stroke-dasharray="6,4" opacity="0.12"/>
+    <circle cx="40" cy="40" r="22" fill="none" stroke="#2563EB" stroke-width="3" opacity="0.15"/>
+    <path d="M 25 40 L 40 25 L 55 40 L 40 55 Z" fill="url(#grad5)" opacity="0.1"/>
+    <path d="M 25 40 L 40 25 L 55 40 L 40 55 Z" fill="none" stroke="#2563EB" stroke-width="2" stroke-linejoin="round" opacity="0.12"/>
+    <defs>
+        <linearGradient id="grad5" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2563EB" stop-opacity="1" />
+            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 61.87335013522748%; top: 48.63268496347374%; width: 66.78015879813427px; height: 66.78015879813427px; animation: float-2 42.574437556463685s ease-in-out -37.424948821253075s infinite;">
+            <svg width="100%" height="100%" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <path d="M 40 10 L 40 70 M 20 30 L 60 30 M 20 30 L 10 50 L 30 50 Z M 60 30 L 50 50 L 70 50 Z M 25 70 L 55 70" fill="none" stroke="#2563EB" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.12"/>
+    <defs>
+        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2563EB" stop-opacity="0.15" />
+            <stop offset="100%" stop-color="#60A5FA" stop-opacity="0" />
+        </linearGradient>
+    </defs>
+    <path d="M 10 50 C 15 60 25 60 30 50 Z" fill="url(#grad1)"/>
+    <path d="M 50 50 C 55 60 65 60 70 50 Z" fill="url(#grad1)"/>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 18.734277240567057%; top: 18.904591093667975%; width: 135.1035415533365px; height: 135.1035415533365px; animation: float-1 26.713069041357574s ease-in-out -21.86957084924762s infinite;">
+            <svg width="100%" height="100%" width="80" height="70" viewBox="0 0 80 70" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="40" cy="25" r="12" fill="none" stroke="#60A5FA" stroke-width="3" opacity="0.15"/>
+    <path d="M 20 60 C 20 45, 60 45, 60 60" fill="none" stroke="#60A5FA" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <circle cx="20" cy="35" r="8" fill="none" stroke="#2563EB" stroke-width="2.5" opacity="0.12"/>
+    <path d="M 5 65 C 5 55, 30 55, 30 65" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+    <circle cx="60" cy="35" r="8" fill="none" stroke="#2563EB" stroke-width="2.5" opacity="0.12"/>
+    <path d="M 50 65 C 50 55, 75 55, 75 65" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 107.3581392412801%; top: 53.92474034354188%; width: 68.8640767280662px; height: 68.8640767280662px; animation: float-3 34.50564756197463s ease-in-out -24.741161707272475s infinite;">
+            <svg width="100%" height="100%" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <g transform="rotate(30 40 40)">
+        <rect x="25" y="20" width="30" height="15" rx="3" fill="none" stroke="#60A5FA" stroke-width="4" opacity="0.15"/>
+        <line x1="40" y1="35" x2="40" y2="65" stroke="#60A5FA" stroke-width="6" stroke-linecap="round" opacity="0.15"/>
+        <line x1="20" y1="27.5" x2="25" y2="27.5" stroke="#60A5FA" stroke-width="4" stroke-linecap="round" opacity="0.15"/>
+        <line x1="55" y1="27.5" x2="60" y2="27.5" stroke="#60A5FA" stroke-width="4" stroke-linecap="round" opacity="0.15"/>
+        <rect x="20" y="70" width="40" height="5" rx="2" fill="#60A5FA" opacity="0.1"/>
+    </g>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 53.32085449019048%; top: 62.79127009791547%; width: 194.6544359011183px; height: 194.6544359011183px; animation: float-3 40.10530393271611s ease-in-out -31.044043444482963s infinite;">
+            <svg width="100%" height="100%" width="80" height="70" viewBox="0 0 80 70" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="40" cy="25" r="12" fill="none" stroke="#60A5FA" stroke-width="3" opacity="0.15"/>
+    <path d="M 20 60 C 20 45, 60 45, 60 60" fill="none" stroke="#60A5FA" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <circle cx="20" cy="35" r="8" fill="none" stroke="#2563EB" stroke-width="2.5" opacity="0.12"/>
+    <path d="M 5 65 C 5 55, 30 55, 30 65" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+    <circle cx="60" cy="35" r="8" fill="none" stroke="#2563EB" stroke-width="2.5" opacity="0.12"/>
+    <path d="M 50 65 C 50 55, 75 55, 75 65" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 37.879075999691494%; top: 70.60243515659397%; width: 106.01307537939408px; height: 106.01307537939408px; animation: float-3 34.029722827822596s ease-in-out -11.155752614970357s infinite;">
+            <svg width="100%" height="100%" width="80" height="70" viewBox="0 0 80 70" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="40" cy="25" r="12" fill="none" stroke="#60A5FA" stroke-width="3" opacity="0.15"/>
+    <path d="M 20 60 C 20 45, 60 45, 60 60" fill="none" stroke="#60A5FA" stroke-width="3" stroke-linecap="round" opacity="0.15"/>
+    <circle cx="20" cy="35" r="8" fill="none" stroke="#2563EB" stroke-width="2.5" opacity="0.12"/>
+    <path d="M 5 65 C 5 55, 30 55, 30 65" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+    <circle cx="60" cy="35" r="8" fill="none" stroke="#2563EB" stroke-width="2.5" opacity="0.12"/>
+    <path d="M 50 65 C 50 55, 75 55, 75 65" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" opacity="0.12"/>
+</svg>
+        </div>
+        
+        <div class="doodle" style="left: 30.57026745769464%; top: 60.597046214868%; width: 84.51720988948655px; height: 84.51720988948655px; animation: float-1 25.143816779701872s ease-in-out -31.852842594680435s infinite;">
+            <svg width="100%" height="100%" width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+    <g transform="rotate(30 40 40)">
+        <rect x="25" y="20" width="30" height="15" rx="3" fill="none" stroke="#60A5FA" stroke-width="4" opacity="0.15"/>
+        <line x1="40" y1="35" x2="40" y2="65" stroke="#60A5FA" stroke-width="6" stroke-linecap="round" opacity="0.15"/>
+        <line x1="20" y1="27.5" x2="25" y2="27.5" stroke="#60A5FA" stroke-width="4" stroke-linecap="round" opacity="0.15"/>
+        <line x1="55" y1="27.5" x2="60" y2="27.5" stroke="#60A5FA" stroke-width="4" stroke-linecap="round" opacity="0.15"/>
+        <rect x="20" y="70" width="40" height="5" rx="2" fill="#60A5FA" opacity="0.1"/>
+    </g>
+</svg>
+        </div>
+        
+    </div>
+</body>
+</html>
