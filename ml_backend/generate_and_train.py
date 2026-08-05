@@ -54,11 +54,9 @@ df_response = pd.DataFrame({
     'response_days': np.round(base_days, 1)
 })
 
-# Save Dataset 1 CSV
 df_response.to_csv('rti_department_response_dataset.csv', index=False)
 print("\n[1/2] Saved 'rti_department_response_dataset.csv' (1,200 rows)")
 
-# Train Regression Model
 X_resp = pd.get_dummies(df_response[['department', 'state', 'rti_section']], drop_first=True)
 y_resp = df_response['response_days']
 
@@ -85,52 +83,46 @@ rejection_reasons = [
     "Rejected citing exempt organization status under Section 24 of the RTI Act.",
     "Denied claiming disclosure would prejudicially affect sovereignty and security of India.",
     "Application returned stating fee payment mode was incorrect or invalid.",
-    "Rejected on grounds of seeking opinions, hypothetical questions rather than records."
+    "Rejected on grounds of seeking opinions, hypothetical questions rather than records.",
+    "Information held in fiduciary relationship under Section 8(1)(e).",
+    "Demanding exorbitant fees for compilation.",
+    "Improper transfer under Section 6(3) asking applicant to file multiple RTIs."
 ]
 
-df_cic = pd.DataFrame({
-    'rejection_ground': np.random.choice(rejection_reasons, 1000),
-    'appeal_stage': np.random.choice(['First Appeal', 'Second Appeal (CIC)'], 1000),
-    'department': np.random.choice(departments, 1000)
-})
+df_cic = pd.DataFrame({'rejection_ground': np.random.choice(rejection_reasons, 1500)})
 
 def assign_outcome(row):
     g = row['rejection_ground']
-    if "8(1)(j)" in g:
-        return np.random.choice(["OVERTURNED_ALLOWED", "REJECTED_DISMISSED"], p=[0.65, 0.35])
-    elif "8(1)(d)" in g:
-        return np.random.choice(["OVERTURNED_ALLOWED", "PARTIALLY_ALLOWED"], p=[0.70, 0.30])
-    elif "Section 24" in g:
-        return np.random.choice(["REJECTED_DISMISSED", "PARTIALLY_ALLOWED"], p=[0.80, 0.20])
+    if any(x in g for x in ["8(1)(j)", "24", "sovereignty", "opinions", "8(1)(e)"]):
+        return "DISMISSED_UPHELD"
+    elif any(x in g for x in ["fee payment", "exorbitant", "6(3)", "incorrect"]):
+        return "OVERTURNED_ALLOWED"
     else:
-        return np.random.choice(["OVERTURNED_ALLOWED", "REJECTED_DISMISSED", "PARTIALLY_ALLOWED"], p=[0.50, 0.30, 0.20])
+        return "PARTIALLY_ALLOWED"
 
 df_cic['outcome'] = df_cic.apply(assign_outcome, axis=1)
 
-# Save Dataset 2 CSV
 df_cic.to_csv('cic_adjudication_dataset.csv', index=False)
-print("\n[2/2] Saved 'cic_adjudication_dataset.csv' (1,000 rows)")
+print("\n[2/2] Saved 'cic_adjudication_dataset.csv' (1,500 rows)")
 
-# Train Classifier Model
+# Train Classifier Model (Text NLP Only)
 vectorizer = TfidfVectorizer(ngram_range=(1, 3), max_features=5000, stop_words='english')
-X_text = vectorizer.fit_transform(df_cic['rejection_ground']).toarray()
-X_meta = pd.get_dummies(df_cic[['appeal_stage', 'department']], drop_first=True).values
-
-X_cic = np.hstack((X_text, X_meta))
+X_cic = vectorizer.fit_transform(df_cic['rejection_ground']).toarray()
 y_cic = df_cic['outcome']
 
 X_train_c, X_test_c, y_train_c, y_test_c = train_test_split(X_cic, y_cic, test_size=0.2, random_state=42)
 
-clf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+clf_model = RandomForestClassifier(n_estimators=200, max_depth=15, random_state=42)
 clf_model.fit(X_train_c, y_train_c)
 
-y_pred_c = clf_model.predict(X_test_c)
-acc = accuracy_score(y_test_c, y_pred_c)
-
+# Save both model and vectorizer
+joblib.dump(vectorizer, 'tfidf_vectorizer.joblib')
 joblib.dump(clf_model, 'cic_adjudication_model.joblib')
+
+acc = accuracy_score(y_test_c, clf_model.predict(X_test_c))
 print(f"      Model Metrics -> Accuracy: {acc * 100:.2f}%")
-print("      Saved Trained Model -> 'cic_adjudication_model.joblib'")
+print("      Saved Trained Models -> 'cic_adjudication_model.joblib' & 'tfidf_vectorizer.joblib'")
 
 print("\n==================================================")
-print(" SUCCESS! All 2 CSVs & 2 Trained Models generated.")
+print(" SUCCESS! All CSVs & Trained Models generated.")
 print("==================================================")
