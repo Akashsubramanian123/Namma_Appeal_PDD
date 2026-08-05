@@ -1,5 +1,0 @@
-# 1. Stay in the root project folder
-cd C:\Users\akash\Downloads\Namma-Appeal-Project-groq
-
-# 2. Push only the namma_appeal subfolder to the new repository
-git subtree push --prefix namma_appeal https://github.com/your-username/namma-appeal-app.git main
