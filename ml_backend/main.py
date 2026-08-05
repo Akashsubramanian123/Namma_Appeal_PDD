@@ -65,26 +65,47 @@ def predict_response_time(data: DepartmentRequest):
 @app.post("/predict-appeal-outcome")
 def predict_appeal_outcome(data: RejectionRequest):
     try:
-        # Preprocess input text for classification
         rejection_text = data.rejection_ground.lower()
         
-        if "8(1)(j)" in rejection_text or "privacy" in rejection_text:
-            outcome = "OVERTURNED_ALLOWED"
-            probability = 0.65
-        elif "8(1)(d)" in rejection_text or "commercial" in rejection_text:
-            outcome = "OVERTURNED_ALLOWED"
-            probability = 0.70
+        # ── FIX 1: Rule-Based Overriding Guardrail ──
+        STRONG_REJECTION_GROUNDS = [
+            "8(1)(j)", "personal information", "third party", "invasion of privacy", 
+            "2(f)", "interrogatory", "opinion", "hypothetical", 
+            "8(1)(a)", "security", "sovereignty" 
+        ]
+        
+        # Check if a strict legal exemption is invoked
+        for phrase in STRONG_REJECTION_GROUNDS:
+            if phrase in rejection_text:
+                return {
+                    "predicted_outcome": "DISMISSED_UPHELD",
+                    "win_probability_percent": 25, # Hard-capped low probability
+                    "recommended_action": "Weak Grounds: Rejection aligns with statutory exemptions under RTI Act."
+                }
+
+        # Simulated base probabilities for remaining conditions based on your current setup
+        if "8(1)(d)" in rejection_text or "commercial" in rejection_text:
+            raw_prob = 0.72
         elif "section 24" in rejection_text:
-            outcome = "REJECTED_DISMISSED"
-            probability = 0.80
+            raw_prob = 0.40
         else:
+            raw_prob = 0.58
+
+        # ── FIX 3: Multi-Tier Decision Thresholds ──
+        if raw_prob >= 0.65:
+            outcome = "OVERTURNED_ALLOWED"
+            action = "Strong Case: Proceed with First Appeal under Section 19(1)."
+        elif raw_prob >= 0.50:
             outcome = "PARTIALLY_ALLOWED"
-            probability = 0.55
+            action = "Moderate Case: Proceed with targeted legal clarifications."
+        else:
+            outcome = "DISMISSED_UPHELD"
+            action = "Weak Case: Grounded in valid RTI exemptions. Filing an appeal is not recommended."
 
         return {
             "predicted_outcome": outcome,
-            "win_probability_percent": int(probability * 100),
-            "recommended_action": "Proceed with First Appeal under Section 19(1)"
+            "win_probability_percent": int(raw_prob * 100),
+            "recommended_action": action
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

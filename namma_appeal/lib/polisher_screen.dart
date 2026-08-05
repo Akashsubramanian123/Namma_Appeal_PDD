@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'main.dart'; // Access themes and PremiumGlassCard
-
+import 'local_llm_service.dart';
 class PolisherScreen extends StatefulWidget {
   final Function(String)? onChatTriggered;
   final Function(int, [String?])? onNavigate;
@@ -40,53 +40,13 @@ class _PolisherScreenState extends State<PolisherScreen> {
     });
 
     try {
-      // ── SMART INTENT CLASSIFIER (Ultra-fast Llama 3.3) ──
-      final classifierBody = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [
-          {
-            "role": "system",
-            "content": "You are a strict routing AI. Classify the user's text into exactly ONE WORD:\n1. 'LETTER': If it is a pre-written formal letter, application, or appeal body to be reviewed/polished.\n2. 'GRIEVANCE': If it is a description of an issue OR a command to write a document (e.g., 'Draft an RTI...', 'I want to file...', 'Write a letter...').\n3. 'QUESTION': ONLY if the user is asking YOU a conversational question or seeking legal advice (e.g., 'How do I...', 'What is the law...'). NEVER output 'QUESTION' if the user is telling you to draft a letter that asks questions to a third party.\nRespond with the single word only."
-          },
-          {"role": "user", "content": textInput}
-        ],
-        "temperature": 0.0
-      };
-
-      final classRes = await Supabase.instance.client.functions.invoke('groq-api', body: {'requestBody': classifierBody});
+      // ── LOCAL LLM POLISHING ──
+      final String systemInstruction = "You are a senior Indian High Court lawyer. Rewrite the user's rough text into a cold, highly professional, and intimidating formal legal RTI application. DO NOT add conversational filler. ONLY return the rewritten letter.";
       
-      if (classRes.status == 200 && classRes.data != null) {
-        String intent = classRes.data['choices'][0]['message']['content'].toString().trim().toUpperCase();
-        
-        // ── AUTO-ROUTING LOGIC ──
-        if (intent.contains('GRIEVANCE')) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This looks like a raw grievance! Routing you to the Draft generator...'), backgroundColor: Color(0xFF10B981)));
-          if (widget.onNavigate != null) widget.onNavigate!(1, textInput); // Route to New RTI
-          return;
-        } else if (intent.contains('QUESTION')) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This is a question! Routing you to the Legal Co-Pilot...'), backgroundColor: kRoyalBlue));
-          if (widget.onChatTriggered != null) widget.onChatTriggered!(textInput); // Route to Chat
-          return;
-        }
-      }
-
-      // ── IF IT IS A LETTER, PROCEED WITH POLISHING ──
-      final polishBody = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [
-          {
-            "role": "system",
-            "content": "You are a senior Indian High Court lawyer. The user will provide a rough or poorly formatted letter. Rewrite it instantly into a cold, highly professional, and intimidating legal RTI application. Ensure correct formatting. DO NOT add conversational filler. ONLY return the rewritten letter."
-          },
-          {"role": "user", "content": textInput}
-        ],
-        "temperature": 0.2,
-      };
-
-      final response = await Supabase.instance.client.functions.invoke('groq-api', body: {'requestBody': polishBody});
-      if (response.status != 200) throw Exception(response.data);
-
-      final polishedText = response.data['choices'][0]['message']['content'].toString().trim();
+      final polishedText = await LocalLLMService.generateResponse(
+        prompt: textInput, 
+        systemPrompt: systemInstruction
+      );
 
       setState(() {
         _polishedResult = polishedText;

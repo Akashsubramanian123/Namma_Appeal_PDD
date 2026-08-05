@@ -2,9 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter/services.dart';
+import 'local_llm_service.dart';
 
 const kRoyalBlue = Color(0xFF2563EB);
 const kTextSlate = Color(0xFF1E293B);
@@ -149,13 +149,8 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  // ── UPDATED FOR LOCAL OLLAMA INFERENCE ──
   Future<void> _processInitialContext(String contextText) async {
-    final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult.contains(ConnectivityResult.none)) {
-      setState(() => _messages.add({"role": "model", "text": "You are offline.", "isStreaming": false}));
-      if (widget.onContextConsumed != null) widget.onContextConsumed!();
-      return;
-    }
     setState(() {
       _messages.add({"role": "user", "text": "I have attached a document for context.", "isStreaming": false});
       _isStreaming = true;
@@ -163,51 +158,34 @@ class _ChatScreenState extends State<ChatScreen> {
     final int aiIndex = _messages.length;
     setState(() => _messages.add({"role": "model", "text": "", "isStreaming": true}));
     _scrollToBottom();
+
     try {
       await _ensureSessionExists("I have attached a document for context.");
       await _saveMessageToCloud("I have attached a document for context.", "user");
-      final prompt = "The user has attached the following document/context from the app. Acknowledge that you have received it, briefly summarize what it is in one sentence, and ask how you can help them with it.\n\nDOCUMENT CONTEXT:\n$contextText";
-      final formattedContents = [{"role": "user", "parts": [{"text": prompt}]}];
-      final Map<String, dynamic> requestBody = {"contents": formattedContents, "systemInstruction": {"parts": [{"text": _systemInstruction}]}};
-      final response = await Supabase.instance.client.functions.invoke('groq-api', body: {'targetApi': 'gemini', 'requestBody': requestBody});
-      if (response.status != 200) throw Exception(response.data);
-      // ── BULLETPROOF API PARSING ──
-      final data = response.data;
-      String aiText = "";
 
-      if (data == null) {
-        throw Exception("API returned an empty response.");
-      } else if (data is Map && data.containsKey('candidates') && data['candidates'] != null && (data['candidates'] as List).isNotEmpty) {
-        // Handle Gemini Format
-        aiText = data['candidates'][0]['content']['parts'][0]['text'].toString();
-      } else if (data is Map && data.containsKey('choices') && data['choices'] != null && (data['choices'] as List).isNotEmpty) {
-        // Handle Groq / Llama Format Fallback
-        aiText = data['choices'][0]['message']['content'].toString();
-      } else if (data is Map && data.containsKey('error')) {
-        // Handle API explicitly returning an error inside a 200 OK
-        throw Exception(data['error'].toString());
-      } else {
-        // Catch-all for unexpected JSON structures
-        throw Exception("Unexpected API response structure: $data");
-      }
+      final prompt = "The user has attached the following document/context from the app. Acknowledge that you have received it, briefly summarize what it is in one sentence, and ask how you can help them with it.\n\nDOCUMENT CONTEXT:\n$contextText";
+
+      // Call local Llama 3 model
+      final aiText = await LocalLLMService.generateResponse(
+        prompt: prompt,
+        systemPrompt: _systemInstruction,
+      );
+
       setState(() { _messages[aiIndex] = {"role": "model", "text": aiText, "isStreaming": false}; _isStreaming = false; });
       await _saveMessageToCloud(aiText, "model");
     } catch (e) {
-      setState(() { _messages[aiIndex] = {"role": "model", "text": "Error communicating safely: $e", "isStreaming": false}; _isStreaming = false; });
+      setState(() { _messages[aiIndex] = {"role": "model", "text": "Error communicating with Local Engine: $e", "isStreaming": false}; _isStreaming = false; });
     } finally {
       if (widget.onContextConsumed != null) widget.onContextConsumed!();
       _scrollToBottom();
     }
   }
 
+  // ── UPDATED FOR LOCAL OLLAMA INFERENCE ──
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
-    final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult.contains(ConnectivityResult.none)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No internet connection.'), backgroundColor: Colors.red));
-      return;
-    }
+
     HapticFeedback.lightImpact();
     setState(() {
       _messages.add(<String, dynamic>{"role": "user", "text": text, "isStreaming": false});
@@ -215,41 +193,33 @@ class _ChatScreenState extends State<ChatScreen> {
       _isStreaming = true;
     });
     _scrollToBottom();
+
     final int aiIndex = _messages.length;
     setState(() => _messages.add(<String, dynamic>{"role": "model", "text": "", "isStreaming": true}));
     _scrollToBottom();
+
     try {
       await _ensureSessionExists(text);
       await _saveMessageToCloud(text, 'user');
-      final formattedContents = _messages.where((m) => m['text'].toString().isNotEmpty && m['role'] != null).map((m) {
-        return {"role": m['role'] == 'user' ? 'user' : 'model', "parts": [{"text": m['text'].toString()}]};
-      }).toList();
-      final Map<String, dynamic> requestBody = {"contents": formattedContents, "systemInstruction": {"parts": [{"text": _systemInstruction}]}};
-      final response = await Supabase.instance.client.functions.invoke('groq-api', body: {'targetApi': 'gemini', 'requestBody': requestBody});
-      if (response.status != 200) throw Exception(response.data);
-      // ── BULLETPROOF API PARSING ──
-      final data = response.data;
-      String aiText = "";
 
-      if (data == null) {
-        throw Exception("API returned an empty response.");
-      } else if (data is Map && data.containsKey('candidates') && data['candidates'] != null && (data['candidates'] as List).isNotEmpty) {
-        // Handle Gemini Format
-        aiText = data['candidates'][0]['content']['parts'][0]['text'].toString();
-      } else if (data is Map && data.containsKey('choices') && data['choices'] != null && (data['choices'] as List).isNotEmpty) {
-        // Handle Groq / Llama Format Fallback
-        aiText = data['choices'][0]['message']['content'].toString();
-      } else if (data is Map && data.containsKey('error')) {
-        // Handle API explicitly returning an error inside a 200 OK
-        throw Exception(data['error'].toString());
-      } else {
-        // Catch-all for unexpected JSON structures
-        throw Exception("Unexpected API response structure: $data");
-      }
+      // Build conversation history string for the local model
+      String chatHistory = _messages
+          .where((m) => m['text'].toString().isNotEmpty)
+          .map((m) => "${m['role'] == 'user' ? 'User' : 'Assistant'}: ${m['text']}")
+          .join("\n");
+
+      final String prompt = "Conversation History:\n$chatHistory\n\nAssistant:";
+
+      // Call local Llama 3 model
+      final aiText = await LocalLLMService.generateResponse(
+        prompt: prompt,
+        systemPrompt: _systemInstruction,
+      );
+
       setState(() { _messages[aiIndex] = {"role": "model", "text": aiText, "isStreaming": false}; _isStreaming = false; });
       await _saveMessageToCloud(aiText, 'model');
     } catch (e) {
-      setState(() { _messages[aiIndex] = {"role": "model", "text": "Error communicating safely: $e", "isStreaming": false}; _isStreaming = false; });
+      setState(() { _messages[aiIndex] = {"role": "model", "text": "Error communicating with Local Engine: $e", "isStreaming": false}; _isStreaming = false; });
     } finally {
       _scrollToBottom();
     }
@@ -400,7 +370,6 @@ class _ChatScreenState extends State<ChatScreen> {
                         else BoxShadow(color: kTextSlate.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
                       ],
                     ),
-                    // ── INTERCEPTOR BUILDER ──
                     child: Builder(
                       builder: (context) {
                         final RegExp navRegex = RegExp(r'\[NAVIGATE_BTN:\s*(.+?)\]');
@@ -414,7 +383,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         String cleanText = text.replaceAll(navRegex, '').trim();
 
                         return Column(
-                          mainAxisSize: MainAxisSize.min, // ── FIXES ALIGNMENT ERROR ──
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (cleanText.isNotEmpty)

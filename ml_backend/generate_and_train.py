@@ -112,7 +112,7 @@ df_cic.to_csv('cic_adjudication_dataset.csv', index=False)
 print("\n[2/2] Saved 'cic_adjudication_dataset.csv' (1,000 rows)")
 
 # Train Classifier Model
-vectorizer = TfidfVectorizer(max_features=100)
+vectorizer = TfidfVectorizer(ngram_range=(1, 3), max_features=5000, stop_words='english')
 X_text = vectorizer.fit_transform(df_cic['rejection_ground']).toarray()
 X_meta = pd.get_dummies(df_cic[['appeal_stage', 'department']], drop_first=True).values
 

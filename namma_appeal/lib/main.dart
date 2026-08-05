@@ -30,6 +30,8 @@ import 'dashboard_screen.dart';
 import 'templates_screen.dart';
 import 'polisher_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'scanner_screen.dart';
+import 'local_llm_service.dart';
 // ==========================================
 // USER PROFILE NOTIFIER
 // ==========================================
@@ -749,41 +751,7 @@ class _NewRtiScreenState extends State<NewRtiScreen> {
     HapticFeedback.lightImpact();
     setState(() { _isStreaming = true; _isDraftSuccessful = false; _generatedDraft = ""; });
 
-    // ── SMART INTENT CLASSIFIER ──
-    if (textInput.isNotEmpty && _selectedImageBytes == null) {
-      try {
-        final classifierBody = {
-          "model": "llama-3.3-70b-versatile",
-          "messages": [
-            {
-              "role": "system", 
-              "content": "You are a strict routing AI. Classify the user's text into exactly ONE WORD:\n1. 'LETTER': If it is a pre-written formal letter, application, or appeal body to be reviewed/polished.\n2. 'GRIEVANCE': If it is a description of an issue OR a command to write a document (e.g., 'Draft an RTI...', 'I want to file...', 'Write a letter...').\n3. 'QUESTION': ONLY if the user is asking YOU a conversational question or seeking legal advice (e.g., 'How do I...', 'What is the law...'). NEVER output 'QUESTION' if the user is telling you to draft a letter that asks questions to a third party.\nRespond with the single word only."
-            },
-            {"role": "user", "content": textInput}
-          ],
-          "temperature": 0.0
-        };
-        final classRes = await Supabase.instance.client.functions.invoke('groq-api', body: {'requestBody': classifierBody});
-        
-        if (classRes.status == 200 && classRes.data != null) {
-          final data = classRes.data;
-          if (data is Map && data.containsKey('choices') && data['choices'] != null && (data['choices'] as List).isNotEmpty) {
-            String intent = data['choices'][0]['message']['content'].toString().trim().toUpperCase();
-            if (intent.contains('LETTER')) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This is already a letter! Routing you to the Polisher...'), backgroundColor: Color(0xFFF59E0B)));
-              if (widget.onNavigate != null) widget.onNavigate!(3, textInput); 
-              return;
-            } else if (intent.contains('QUESTION')) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This is a question! Routing you to the Legal Co-Pilot...'), backgroundColor: kRoyalBlue));
-              if (widget.onChatTriggered != null) widget.onChatTriggered!(textInput);
-              return;
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint("Classifier error: $e"); 
-      }
-    }
+    
 
     // ── IF IT IS A GRIEVANCE, PROCEED WITH GEMINI GENERATION ──
     final profile = userProfileNotifier.value;
@@ -806,21 +774,17 @@ class _NewRtiScreenState extends State<NewRtiScreen> {
     String userContent = "User Grievance Description:\n${textInput.isNotEmpty ? textInput : 'Describe civic issue in image.'}\n$profileBlock";
         
     try {
-      final List<Map<String, dynamic>> messageParts = [{"text": userContent}];
-      if (_selectedImageBytes != null) messageParts.add({"inlineData": {"mimeType": "image/jpeg", "data": base64Encode(_selectedImageBytes!)}});
+      // ── LOCAL LLM DRAFT GENERATOR ──
+      String systemInstructions = 
+          "You are Namma-Appeal AI, a legal expert. Draft a highly detailed, formal Right to Information (RTI) application "
+          "under Section 6(1) of the RTI Act, 2005. $pioInstruction\n"
+          "CRITICAL: End completely with exactly: [END OF DRAFT].\n"
+          "Translate and write the entire final draft completely in $_selectedLanguage.";
 
-      final response = await Supabase.instance.client.functions.invoke(
-        'groq-api', body: {'targetApi': 'gemini', 'requestBody': {"systemInstruction": {"parts": [{"text": systemInstructions}]}, "contents": [{"role": "user", "parts": messageParts}]}},
+      final finalDraft = await LocalLLMService.generateResponse(
+        prompt: userContent,
+        systemPrompt: systemInstructions
       );
-
-      if (response.status != 200) throw Exception(response.data);
-      
-      final data = response.data;
-      if (data == null || data is! Map || !data.containsKey('candidates') || data['candidates'] == null || (data['candidates'] as List).isEmpty) {
-        throw Exception("API returned an unexpected format. Raw response: $data");
-      }
-
-      final finalDraft = data['candidates'][0]['content']['parts'][0]['text'].toString();
 
       String generatedId = "";
       try {
@@ -1179,331 +1143,6 @@ class _NewRtiScreenState extends State<NewRtiScreen> {
                     ),
                   ),
             ]
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ==========================================
-// SCANNER SCREEN
-// ==========================================
-class ScannerScreen extends StatefulWidget {
-  final Function(String)? onChatTriggered;
-  const ScannerScreen({super.key, this.onChatTriggered});
-
-  @override
-  State<ScannerScreen> createState() => _ScannerScreenState();
-}
-
-class _ScannerScreenState extends State<ScannerScreen> {
-  final ImagePicker _picker = ImagePicker();
-  bool _isStreaming = false;
-  String _resultText = "Scan a rejection letter to begin analysis.";
-  String _fullAiResponse = "";
-
-  Future<void> _scanDocument() async {
-    final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-    if (photo == null) return;
-
-    final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult.contains(ConnectivityResult.none)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('No internet connection.'), backgroundColor: Colors.red));
-      return;
-    }
-    
-    HapticFeedback.lightImpact();
-    setState(() {
-      _isStreaming = true;
-      _resultText = "";
-      _fullAiResponse = "";
-    });
-
-    int retryCount = 0;
-    const int maxRetries = 3;
-
-    while (retryCount < maxRetries) {
-      try {
-        final imageBytes = await photo.readAsBytes();
-        final base64Image = base64Encode(imageBytes);
-        
-        // ── 1. First Call: Identify Topic via Gemini ──
-        final topicRequestBody = {
-          "contents": [
-            {
-              "role": "user",
-              "parts": [
-                {"text": "Identify the one-word legal topic of this RTI rejection (e.g. Language, Privacy, Security, Fee)."},
-                {
-                  "inlineData": {
-                    "mimeType": "image/jpeg",
-                    "data": base64Image
-                  }
-                }
-              ]
-            }
-          ]
-        };
-
-        final topicResponse = await Supabase.instance.client.functions.invoke(
-          'groq-api',
-          body: {
-            'targetApi': 'gemini', 
-            'requestBody': topicRequestBody
-          },
-        );
-        
-        String topic = "General";
-        if (topicResponse.status == 200 && topicResponse.data != null) {
-          final data = topicResponse.data;
-          if (data is Map && data.containsKey('candidates') && (data['candidates'] as List).isNotEmpty) {
-            topic = data['candidates'][0]['content']['parts'][0]['text'].toString().trim();
-          }
-        }
-
-        final response = await Supabase.instance.client
-            .from('rti_laws')
-            .select('content')
-            .ilike('content', '%$topic%')
-            .limit(3);
-
-        final List<dynamic> laws = response as List<dynamic>;
-        String lawContext = laws.map((e) => e['content'].toString()).join("\n\n");
-
-        final now = DateTime.now();
-        final formattedDate = "${now.day}/${now.month}/${now.year}";
-
-        final profile = userProfileNotifier.value;
-        String profileBlock = '';
-        if (profile != null) {
-          final name = profile['full_name'] ?? '';
-          final address = profile['address'] ?? '';
-          final mobile = profile['mobile_number'] ?? '';
-          final state = profile['state'] ?? '';
-          if (name.isNotEmpty) {
-            profileBlock = '\n\nAPPELLANT DETAILS (auto-filled from saved profile):\n'
-                'Name: $name\nAddress: $address\nMobile: $mobile\nState: $state\n'
-                'Use these details explicitly in the signature and appellant block of the letter.';
-          }
-        }
-
-        String systemInstructions = 
-          "You are Namma-Appeal AI, a constitutional law and RTI activist expert. Analyze the user's letter using this legal context:\n$lawContext\n\n"
-          "1. Start with a clean, Markdown-formatted analysis overview: 'As Namma-Appeal AI, I have analyzed your letter...'\n"
-          "2. Provide 3 specific legal bullet points explaining why the rejection violates the provisions of the RTI Act, 2005.\n"
-          "3. You MUST insert this EXACT marker as a separator between the analysis and the letter: [DRAFT_START]\n"
-          "4. Below the separator, write a complete, structurally sound formal First Appeal letter under Section 19(1) of the RTI Act.\n\n"
-          "CRITICAL FORMATTING INSTRUCTION: For the draft below the separator, write a continuous formal letter. DO NOT use bold headers or asterisks.\n\n"
-          "CRITICAL ENDING INSTRUCTION: You MUST end the draft completely by writing this exact marker: [END OF DRAFT]. DO NOT write a fee statement, DO NOT write 'Yours faithfully', and DO NOT sign the letter. Stop exactly at [END OF DRAFT].\n\n"
-          "CRITICAL DATE INSTRUCTION: The current date is $formattedDate. You MUST use exactly this date in the date block of the appeal letter.\n\n"
-          "CRITICAL WRITING INSTRUCTION: The appeal letter will be printed on plain paper. You MUST refer to the rejected document neutrally as 'the rejection order issued by the PIO'. FORBIDDEN WORDS: 'scan', 'upload', 'photo', 'image', 'photograph'. You will be penalized if you use these words in the appeal draft.\n\n"
-          "Use first-person ('I') throughout the letter text.";
-
-        String userContent = "Please analyze the attached rejection order.$profileBlock";
-
-        // ── 2. Second Call: Full Analysis via Gemini ──
-        final analysisRequestBody = {
-          "systemInstruction": {
-            "parts": [{"text": systemInstructions}]
-          },
-          "contents": [
-            {
-              "role": "user",
-              "parts": [
-                {"text": userContent},
-                {
-                  "inlineData": {
-                    "mimeType": "image/jpeg",
-                    "data": base64Image
-                  }
-                }
-              ]
-            }
-          ]
-        };
-
-        final analysisResponse = await Supabase.instance.client.functions.invoke(
-          'groq-api',
-          body: {
-            'targetApi': 'gemini',
-            'requestBody': analysisRequestBody
-          },
-        );
-
-        if (analysisResponse.status != 200) throw Exception(analysisResponse.data);
-
-        final data = analysisResponse.data;
-        if (data == null || data is! Map || !data.containsKey('candidates') || (data['candidates'] as List).isEmpty) {
-          throw Exception("API returned an unexpected format. Raw response: $data");
-        }
-
-        final finalAiText = data['candidates'][0]['content']['parts'][0]['text'].toString();
-        
-        String displaySummary = finalAiText;
-        if (finalAiText.contains('[DRAFT_START]')) {
-          displaySummary = finalAiText.split('[DRAFT_START]')[0].trim();
-        } else if (finalAiText.contains('---DRAFT START---')) {
-          displaySummary = finalAiText.split('---DRAFT START---')[0].trim();
-        } else if (finalAiText.toLowerCase().contains('# draft')) {
-          displaySummary = finalAiText.toLowerCase().split('# draft')[0].trim();
-        }
-        String generatedId = "";
-        
-        try {
-          final insertedRow = await Supabase.instance.client.from('scan_history').insert({
-            'topic': topic,
-            'analysis_summary': displaySummary,
-            'full_draft': finalAiText,
-            'user_id': Supabase.instance.client.auth.currentUser?.id,
-          }).select('id').single(); 
-          generatedId = insertedRow['id'].toString();
-        } catch (dbError) {
-          debugPrint("Failed to save history: $dbError");
-        }
-
-        setState(() {
-          _fullAiResponse = finalAiText;
-          _resultText = displaySummary;
-          _isStreaming = false;
-        });
-
-        if (mounted && generatedId.isNotEmpty) {
-           _offerRtiReminder(finalAiText, topic, generatedId);
-        }
-        return;
-      } catch (e) {
-        if (e.toString().contains("503") && retryCount < maxRetries - 1) {
-          retryCount++;
-          await Future.delayed(Duration(seconds: retryCount * 5));
-        } else {
-          setState(() {
-            _resultText = "Error processing request. Please try again. Details: $e";
-            _isStreaming = false;
-          });
-          break;
-        }
-      }
-    }
-  }
-
-  Future<void> _offerRtiReminder(String draft, String topic, String targetRecordId) async {
-    DateTime? filingDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now().subtract(const Duration(days: 30)),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
-      helpText: 'Did you file this RTI? Pick the filing date to set reminders.',
-      confirmText: 'Set Reminders',
-      cancelText: 'Skip',
-    );
-
-    if (filingDate == null || !mounted) return;
-
-    try {
-      final ids = await ReminderService.scheduleRtiReminders(
-        filingDate: filingDate,
-        department: 'the concerned department',
-        topic: topic,
-      );
-
-      await Supabase.instance.client.from('scan_history').update({
-        'filing_date': filingDate.toIso8601String(),
-        'notification_ids': ids,
-      }).eq('id', targetRecordId);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('✅ Reminders set for Day 27 and Day 57!'),
-              backgroundColor: Colors.green),
-        );
-      }
-    } catch (e) {
-      debugPrint('Reminder error: $e');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final themeColor = Theme.of(context).colorScheme.primary;
-
-    return Scaffold(
-      floatingActionButton: _fullAiResponse.isNotEmpty && !_isStreaming
-          ? FloatingActionButton.extended(
-              onPressed: () => widget.onChatTriggered!(_fullAiResponse),
-              icon: const Icon(Icons.chat),
-              label: const Text("Discuss with AI"),
-              backgroundColor: themeColor,
-              foregroundColor: Colors.white,
-            )
-          : null,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.asset('assets/page_icon_custom.png',
-                  width: 90, height: 90, fit: BoxFit.cover),
-            ),
-            const SizedBox(height: 30),
-
-            Container(
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: themeColor.withOpacity(0.15)),
-              ),
-              child: MarkdownBody(
-                data: _resultText.isEmpty
-                    ? "Scan a rejection letter to begin analysis."
-                    : _resultText,
-                selectable: true,
-                styleSheet: MarkdownStyleSheet(
-                  p: const TextStyle(fontSize: 16, height: 1.5),
-                  strong: const TextStyle(fontSize: 16, height: 1.5, fontWeight: FontWeight.bold),
-                  listBullet: const TextStyle(fontSize: 16),
-                ),
-              ),
-            ),
-
-            if (_isStreaming)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: themeColor)),
-                    const SizedBox(width: 8),
-                    Text('Analyzing...', style: TextStyle(color: themeColor, fontSize: 12)),
-                  ],
-                ),
-              ),
-
-            const SizedBox(height: 40),
-
-            ElevatedButton.icon(
-              onPressed: _isStreaming ? null : _scanDocument,
-              style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
-              icon: const Icon(Icons.camera_alt),
-              label: const Text("Scan RTI Rejection", style: TextStyle(fontSize: 18)),
-            ),
-            const SizedBox(height: 15),
-
-            if (_fullAiResponse.isNotEmpty && !_isStreaming)
-              OutlinedButton.icon(
-                onPressed: () => generateAndPrintPdf(_fullAiResponse, context, isAppeal: true),
-                style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
-                icon: const Icon(Icons.picture_as_pdf),
-                label: const Text("Generate Appeal PDF", style: TextStyle(fontSize: 18)),
-              ),
           ],
         ),
       ),

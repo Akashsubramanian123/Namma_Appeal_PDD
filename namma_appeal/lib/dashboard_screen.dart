@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'main.dart'; 
+import 'scanner_screen.dart';
 
 class DashboardOverviewScreen extends StatelessWidget {
   final void Function(int, [String?, String?]) onNavigate;
@@ -165,6 +166,21 @@ class DashboardOverviewScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Top Quick Actions ──
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.document_scanner),
+                    label: const Text('Scan Rejection Letter (Offline)'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      backgroundColor: Colors.blueGrey[800],
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ScannerScreen()),
+                      );
+                    },
+                  ),
                   if (isMobile)
                     Column(
                       children: [
