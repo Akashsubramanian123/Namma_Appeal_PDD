@@ -67,44 +67,36 @@ def predict_appeal_outcome(data: RejectionRequest):
     try:
         rejection_text = data.rejection_ground.lower()
         
-        # ── FIX 1: Rule-Based Overriding Guardrail ──
-        STRONG_REJECTION_GROUNDS = [
-            "8(1)(j)", "personal information", "third party", "invasion of privacy", 
-            "2(f)", "interrogatory", "opinion", "hypothetical", 
-            "8(1)(a)", "security", "sovereignty" 
-        ]
+        # ── TRUE ML INFERENCE (No Hardcoded Rules) ──
+        # 1. Transform the long OCR text into mathematical features
+        text_features = vectorizer.transform([rejection_text]).toarray()
         
-        # Check if a strict legal exemption is invoked
-        for phrase in STRONG_REJECTION_GROUNDS:
-            if phrase in rejection_text:
-                return {
-                    "predicted_outcome": "DISMISSED_UPHELD",
-                    "win_probability_percent": 25, # Hard-capped low probability
-                    "recommended_action": "Weak Grounds: Rejection aligns with statutory exemptions under RTI Act."
-                }
-
-        # Simulated base probabilities for remaining conditions based on your current setup
-        if "8(1)(d)" in rejection_text or "commercial" in rejection_text:
-            raw_prob = 0.72
-        elif "section 24" in rejection_text:
-            raw_prob = 0.40
-        else:
-            raw_prob = 0.58
-
-        # ── FIX 3: Multi-Tier Decision Thresholds ──
-        if raw_prob >= 0.65:
-            outcome = "OVERTURNED_ALLOWED"
-            action = "Strong Case: Proceed with First Appeal under Section 19(1)."
-        elif raw_prob >= 0.50:
-            outcome = "PARTIALLY_ALLOWED"
+        # 2. Get the actual variance probabilities from the 300 decision trees
+        probabilities = clf_model.predict_proba(text_features)[0]
+        classes = clf_model.classes_
+        
+        # 3. Find the most likely outcome
+        max_index = np.argmax(probabilities)
+        predicted_class = classes[max_index]
+        
+        # Pull the exact probability for the predicted class
+        raw_prob = float(probabilities[max_index])
+        
+        # 4. Format logic based on ML math
+        if predicted_class == "OVERTURNED_ALLOWED":
+            action = "Strong Case: Procedural error detected. Proceed with First Appeal."
+            win_chance = raw_prob
+        elif predicted_class == "PARTIALLY_ALLOWED":
             action = "Moderate Case: Proceed with targeted legal clarifications."
-        else:
-            outcome = "DISMISSED_UPHELD"
+            win_chance = raw_prob
+        else: # REJECTED_DISMISSED
             action = "Weak Case: Grounded in valid RTI exemptions. Filing an appeal is not recommended."
+            # If the model is 85% confident it will be DISMISSED, the "Win Chance" is 15%.
+            win_chance = 1.0 - raw_prob 
 
         return {
-            "predicted_outcome": outcome,
-            "win_probability_percent": int(raw_prob * 100),
+            "predicted_outcome": predicted_class,
+            "win_probability_percent": int(win_chance * 100),
             "recommended_action": action
         }
     except Exception as e:
