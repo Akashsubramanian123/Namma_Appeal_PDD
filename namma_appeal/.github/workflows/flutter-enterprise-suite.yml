@@ -1,0 +1,57 @@
+name: Namma-Appeal Enterprise Automation & Security Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  enterprise-e2e-load-security:
+    name: Run 400-Case E2E, Load & Security Audit Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Set up Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install Appium & Dependencies
+        run: |
+          npm install -g appium@next
+          appium driver install uiautomator2 || true
+          appium driver install flutter || true
+
+      - name: Run Test Suite
+        working-directory: ./test_automation
+        run: |
+          npm install
+          node runner.js
+
+      - name: Upload Master Excel Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Namma_Appeal_Master_Enterprise_Report
+          path: test_automation/reports/Namma_Appeal_Master_Enterprise_Report.xlsx

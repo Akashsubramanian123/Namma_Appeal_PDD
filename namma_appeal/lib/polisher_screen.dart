@@ -34,14 +34,55 @@ class _PolisherScreenState extends State<PolisherScreen> {
     if (textInput.isEmpty) return;
 
     HapticFeedback.lightImpact();
-    setState(() {
-      _isStreaming = true;
-      _polishedResult = "";
-    });
+    setState(() => _isStreaming = true);
 
     try {
-      // ── LOCAL LLM POLISHING ──
-      final String systemInstruction = "You are a senior Indian High Court lawyer. Rewrite the user's rough text into a cold, highly professional, and intimidating formal legal RTI application. DO NOT add conversational filler. ONLY return the rewritten letter.";
+      // 1. Run text through the workspace router
+      final routeData = await LocalLLMService.getWorkspaceRoute(textInput);
+      int targetIndex = routeData['index'];
+      setState(() => _isStreaming = false);
+
+      // 2. If it's a rejection/appeal -> Route to Rejection Scanner (Index 4)
+      if (targetIndex == 4 && widget.onNavigate != null) {
+        bool? confirmed = await _showRoutingConfirmation(context, "Rejection Scanner", textInput);
+        if (confirmed == true && mounted) {
+          _textController.clear();
+          widget.onNavigate!(4);
+        }
+        return;
+      }
+
+      // 3. If it's a general question/doubt -> Route to Legal Co-Pilot (Index 6)
+      if (targetIndex == 6 && widget.onNavigate != null) {
+        bool? confirmed = await _showRoutingConfirmation(context, "Legal Co-Pilot", textInput);
+        if (confirmed == true && mounted) {
+          _textController.clear();
+          widget.onNavigate!(6, textInput);
+        }
+        return;
+      }
+
+      // 4. If it's a new grievance -> Route to Draft New RTI (Index 1)
+      if (targetIndex == 1 && widget.onNavigate != null) {
+        bool? confirmed = await _showRoutingConfirmation(context, "Draft New RTI", textInput);
+        if (confirmed == true && mounted) {
+          _textController.clear();
+          widget.onNavigate!(1, textInput);
+        }
+        return;
+      }
+
+      // 5. Otherwise, proceed with normal Polishing (Index 3)
+      setState(() => _isStreaming = true);
+      final profile = userProfileNotifier.value;
+      String userName = profile != null && (profile['full_name'] ?? '').isNotEmpty 
+          ? profile['full_name'] 
+          : "an Indian citizen";
+
+      final String systemInstruction = 
+          "You are a helpful assistant rewriting a rough text into a clear, professional formal RTI application for $userName. "
+          "CRITICAL: DO NOT pretend to be a lawyer. Write from a standard citizen's perspective. "
+          "DO NOT add conversational filler. ONLY return the rewritten letter.";
       
       final polishedText = await LocalLLMService.generateResponse(
         prompt: textInput, 
@@ -53,11 +94,50 @@ class _PolisherScreenState extends State<PolisherScreen> {
         _isStreaming = false;
       });
       
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✨ Letter professionally polished!'), backgroundColor: kSuccessEmerald));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✨ Letter professionally polished!'), backgroundColor: kSuccessEmerald),
+        );
+      }
     } catch (e) {
       setState(() => _isStreaming = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: kRejectedRed));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: kRejectedRed));
+      }
     }
+  }
+
+  // Helper for the popup confirmation box
+  Future<bool?> _showRoutingConfirmation(BuildContext context, String destinationName, String reason) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: kRoyalBlue),
+            const SizedBox(width: 10),
+            Text('Smart Routing: $destinationName', style: const TextStyle(color: kTextSlate, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'Based on your text ("$reason"), our AI suggests routing you to the $destinationName screen to handle this properly.\n\nWould you like to proceed?',
+          style: const TextStyle(color: kTextSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Stay Here', style: TextStyle(color: kTextSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kRoyalBlue, foregroundColor: Colors.white),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Proceed'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

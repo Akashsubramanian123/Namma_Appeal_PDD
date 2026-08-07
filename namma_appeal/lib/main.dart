@@ -566,9 +566,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                       focusNode: _searchFocusNode,
                       style: const TextStyle(fontSize: 14, color: kTextSlate),
                       decoration: InputDecoration(
-                        hintText: isDesktop ? 'Search RTIs...' : 'Search...',
+                        hintText: isDesktop ? 'Ask AI, search history, or enter a command...' : 'Ask AI...',
                         hintStyle: TextStyle(color: kTextSecondary.withOpacity(0.7), fontSize: 13),
-                        prefixIcon: const Icon(Icons.search, color: kTextSecondary, size: 18),
+                        // Changed the icon to an AI sparkle to indicate smart features
+                        prefixIcon: const Icon(Icons.auto_awesome, color: kRoyalBlue, size: 18),
                         suffixIcon: _searchQuery.isNotEmpty || _searchController.text.isNotEmpty
                             ? IconButton(icon: const Icon(Icons.clear, size: 16, color: kTextSecondary), onPressed: () { _searchController.clear(); _removeSearchOverlay(); setState(() => _searchQuery = ''); })
                             : null,
@@ -576,7 +577,39 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                         contentPadding: const EdgeInsets.symmetric(vertical: 13),
                       ),
                       onChanged: _onSearchChanged,
-                      onSubmitted: (value) { _removeSearchOverlay(); setState(() { _searchQuery = value.trim(); if (_searchQuery.isNotEmpty) { _currentIndex = 5; _historyFilter = 'All'; } }); },
+                      // ── UNIVERSAL ROUTING TRIGGER ──
+                      onSubmitted: (value) async { 
+                        _removeSearchOverlay(); 
+                        if (value.trim().isEmpty) return;
+
+                        // 1. Show processing snackbar
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('🧠 AI is determining your intent...'), duration: Duration(seconds: 1)),
+                        );
+
+                        // 2. Call the Universal Router
+                        final routeData = await LocalLLMService.getUniversalRoute(value);
+                        int targetIndex = routeData['index'];
+                        String payload = routeData['payload'];
+                        
+                        final screenNames = ["Dashboard", "Draft RTI", "Templates", "Polisher", "Rejection Scanner", "History", "Legal Co-Pilot", "Profile"];
+
+                        // 3. Quick Confirmation Snackbar
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('✅ Routing to ${screenNames[targetIndex]}...'), 
+                              backgroundColor: kSuccessEmerald,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+
+                        // 4. Execute Global Navigation
+                        _searchController.clear();
+                        _navigateToIndex(targetIndex, payload.isNotEmpty ? payload : null); 
+                      },
                     ),
                   ),
                 ),
@@ -748,10 +781,69 @@ class _NewRtiScreenState extends State<NewRtiScreen> {
       return;
     }
 
+    // ── WORKSPACE ROUTER INTERCEPT WITH DIALOG CONFIRMATION ──
+    if (_selectedImageBytes == null && textInput.isNotEmpty) {
+      setState(() => _isStreaming = true);
+      
+      final String routerPrompt = """
+You are a workspace router. Analyze the user text typed into a fresh RTI application screen:
+- 3: Polish Existing Letter (If the user pasted a rough letter, draft, or formal letter body starting with 'To', 'Dear')
+- 4: Rejection Scanner (If the user mentions an RTI rejection, getting rejected, or wanting to appeal a rejection order like 'my rti got rejected')
+- 6: Legal Co-Pilot (If the user is asking a general question, math problem, doubt, or conversation like 'what is 2 plus 2')
+- 1: Draft New RTI (If it is a genuine grievance or civic complaint to be built from scratch)
+
+OUTPUT FORMAT MUST BE EXACTLY:
+INDEX: [1, 3, 4, or 6]
+PAYLOAD: [cleaned text]
+""";
+
+      try {
+        final response = await LocalLLMService.generateResponse(prompt: textInput, systemPrompt: routerPrompt);
+        final indexRegExp = RegExp(r'INDEX:\s*([1346])');
+        final match = indexRegExp.firstMatch(response);
+        
+        int targetIndex = 1;
+        if (match != null) {
+          targetIndex = int.parse(match.group(1)!);
+        }
+        setState(() => _isStreaming = false);
+
+        // Routing to Rejection Scanner (Index 4)
+        if (targetIndex == 4 && widget.onNavigate != null) {
+          bool? confirmed = await _showRoutingConfirmation(context, "Rejection Scanner", textInput);
+          if (confirmed == true && mounted) {
+            _promptController.clear();
+            widget.onNavigate!(4);
+          }
+          return;
+        }
+
+        // Routing to Legal Co-Pilot (Index 6)
+        if (targetIndex == 6 && widget.onNavigate != null) {
+          bool? confirmed = await _showRoutingConfirmation(context, "Legal Co-Pilot", textInput);
+          if (confirmed == true && mounted) {
+            _promptController.clear();
+            widget.onNavigate!(6, textInput);
+          }
+          return;
+        }
+
+        // Routing to Polisher (Index 3)
+        if (targetIndex == 3 && widget.onNavigate != null) {
+          bool? confirmed = await _showRoutingConfirmation(context, "AI Document Polisher", textInput);
+          if (confirmed == true && mounted) {
+            _promptController.clear();
+            widget.onNavigate!(3, textInput);
+          }
+          return;
+        }
+      } catch (_) {
+        setState(() => _isStreaming = false);
+      }
+    }
+
     HapticFeedback.lightImpact();
     setState(() { _isStreaming = true; _isDraftSuccessful = false; _generatedDraft = ""; });
-
-    
 
     // ── IF IT IS A GRIEVANCE, PROCEED WITH GEMINI GENERATION ──
     final profile = userProfileNotifier.value;
@@ -774,17 +866,24 @@ class _NewRtiScreenState extends State<NewRtiScreen> {
     String userContent = "User Grievance Description:\n${textInput.isNotEmpty ? textInput : 'Describe civic issue in image.'}\n$profileBlock";
         
     try {
-      // ── LOCAL LLM DRAFT GENERATOR ──
+      // 1. Determine the user's name dynamically
+      final profile = userProfileNotifier.value;
+      String userName = profile != null && (profile['full_name'] ?? '').isNotEmpty 
+          ? profile['full_name'] 
+          : "an Indian citizen";
+
+      // 2. Inject into the prompt
       String systemInstructions = 
-          "You are Namma-Appeal AI, a legal expert. Draft a highly detailed, formal Right to Information (RTI) application "
-          "under Section 6(1) of the RTI Act, 2005. $pioInstruction\n"
+          "You are Namma-Appeal AI, assisting $userName with drafting a formal Right to Information (RTI) application "
+          "under Section 6(1) of the RTI Act, 2005. Do not write as a legal expert or lawyer. Write from the citizen's perspective. $pioInstruction\n"
           "CRITICAL: End completely with exactly: [END OF DRAFT].\n"
           "Translate and write the entire final draft completely in $_selectedLanguage.";
 
       final finalDraft = await LocalLLMService.generateResponse(
-        prompt: userContent,
+        prompt: userContent, // userContent already contains profileBlock
         systemPrompt: systemInstructions
       );
+      // ... (keep the rest of the function the same)
 
       String generatedId = "";
       try {
@@ -903,6 +1002,37 @@ class _NewRtiScreenState extends State<NewRtiScreen> {
     } catch (e) {
       debugPrint('Reminder error: $e');
     }
+  }
+  Future<bool?> _showRoutingConfirmation(BuildContext context, String destinationName, String reason) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: kRoyalBlue),
+            const SizedBox(width: 10),
+            Text('Smart Routing: $destinationName', style: const TextStyle(color: kTextSlate, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'Based on your text ("$reason"), our AI suggests routing you to the $destinationName screen to complete this task properly.\n\nWould you like to proceed?',
+          style: const TextStyle(color: kTextSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false), // Cancel
+            child: const Text('Stay Here', style: TextStyle(color: kTextSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kRoyalBlue, foregroundColor: Colors.white),
+            onPressed: () => Navigator.of(ctx).pop(true), // Confirm
+            child: const Text('Proceed'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1499,6 +1629,8 @@ Future<void> generateAndPrintPdf(
     final pdf = pw.Document();
 
     String draftPart = fullAiResponse;
+    
+    // 1. Isolate the draft from the analysis (Keep everything AFTER these markers)
     if (draftPart.contains('[DRAFT_START]')) {
       draftPart = draftPart.split('[DRAFT_START]').last;
     } else if (draftPart.contains('---DRAFT START---')) {
@@ -1509,22 +1641,24 @@ Future<void> generateAndPrintPdf(
     }
     draftPart = draftPart.trim();
 
-    if (draftPart.contains('[END OF DRAFT]')) {
-      draftPart = draftPart.split('[END OF DRAFT]').first.trim();
-    }
+    // 2. Fix the truncation bug by simply erasing the end marker instead of splitting by it
+    draftPart = draftPart.replaceAll(RegExp(r'\[END OF DRAFT\]', caseSensitive: false), '').trim();
 
+    // 3. Use stop phrases to cleanly cut off the AI's hallucinated signature
     final lowerDraft = draftPart.toLowerCase();
     int cutoffIndex = draftPart.length;
     final stopPhrases = [
       'sincerely', 'yours faithfully', 'thanking you', 'yours truly',
       'i am attaching an indian postal', 'i am attaching a demand', 'enclosed is'
     ];
+    
     for (String phrase in stopPhrases) {
       int index = lowerDraft.indexOf(phrase);
       if (index != -1 && index < cutoffIndex) cutoffIndex = index;
     }
     draftPart = draftPart.substring(0, cutoffIndex).trim();
 
+    // 4. Append the standardized app signature
     if (isAppeal) {
       draftPart += "\n\nEnclosed: Indian Postal Order / Demand Draft No. __________________\nAmount: Towards requisite appeal processing fees.\n\nThanking you,\nYours faithfully,\n($applicantName)\nAppellant";
     } else {

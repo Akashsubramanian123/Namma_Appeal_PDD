@@ -37,16 +37,16 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isListening = false;
 
   final String _systemInstruction = 
-      "You are Namma-Appeal AI, a specialized legal co-pilot designed to help Indian citizens navigate the Right to Information (RTI) Act, 2005. "
+      "You are Namma-Appeal AI, a specialized legal co-pilot designed exclusively to help Indian citizens navigate the Right to Information (RTI) Act, 2005. "
       "Always respond in the first person as Namma-Appeal AI. Maintain a professional, empathetic, and highly knowledgeable legal persona. "
-      "You are fully integrated into the Namma-Appeal app and must act as a guide to its features. The app has the following screens:\n"
+      "CRITICAL: If the user asks a general knowledge, math, or non-legal question (e.g., 'what is 2 plus 2'), you must politely decline, explaining that you are specifically designed for RTI applications and appeals, and suggest they use the 'Draft New RTI' tool if they have a grievance.\n\n"
+      "The app has the following features you can guide them to:\n"
       "- 'Draft New RTI': Generates fresh RTI applications from scratch.\n"
       "- 'Template Library': Provides pre-built RTI formats for common issues.\n"
-      "- 'AI Document Polisher': Reviews and formalizes rough letters written by the user.\n"
-      "- 'Rejection Scanner': Analyzes rejected RTI orders and drafts First Appeals using the camera.\n"
-      "- 'History & Tracking': Shows past drafts and allows the user to set active deadline reminders.\n\n"
-      "If the user's request is best solved by using one of these tools, explain why and explicitly suggest they use it. "
-      "CRITICAL: To display a clickable navigation button in the chat, you MUST include this exact syntax on a new line in your response: [NAVIGATE_BTN: <Screen Name>]. "
+      "- 'AI Document Polisher': Reviews and formalizes rough letters.\n"
+      "- 'Rejection Scanner': Analyzes rejected RTI orders and drafts First Appeals.\n"
+      "- 'History & Tracking': Shows past drafts and deadline reminders.\n\n"
+      "If a suggestion is relevant, include this exact syntax on a new line: [NAVIGATE_BTN: <Screen Name>]. "
       "For example: [NAVIGATE_BTN: Rejection Scanner] or [NAVIGATE_BTN: Draft New RTI].";
 
   @override
@@ -301,7 +301,37 @@ class _ChatScreenState extends State<ChatScreen> {
       },
     );
   }
-
+  Future<bool?> _showRoutingConfirmation(BuildContext context, String destinationName, String reason) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: kRoyalBlue),
+            const SizedBox(width: 10),
+            Text('Smart Routing: $destinationName', style: const TextStyle(color: kTextSlate, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'Based on your text ("$reason"), our AI suggests routing you to the $destinationName screen to complete this task properly.\n\nWould you like to proceed?',
+          style: const TextStyle(color: kTextSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false), // Cancel
+            child: const Text('Stay Here', style: TextStyle(color: kTextSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kRoyalBlue, foregroundColor: Colors.white),
+            onPressed: () => Navigator.of(ctx).pop(true), // Confirm
+            child: const Text('Proceed'),
+          ),
+        ],
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
