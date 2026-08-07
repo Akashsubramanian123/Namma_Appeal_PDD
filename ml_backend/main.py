@@ -4,7 +4,10 @@ from pydantic import BaseModel
 import joblib
 import pandas as pd
 import numpy as np
-
+import pytesseract
+from PIL import Image
+import io
+import base64
 app = FastAPI(title="Namma-Appeal ML Engine")
 
 app.add_middleware(
@@ -90,5 +93,23 @@ def predict_appeal_outcome(data: RejectionRequest):
             "win_probability_percent": int(win_prob * 100),
             "recommended_action": action
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ── TRUE OCR ENDPOINT ──
+class OCRRequest(BaseModel):
+    base64_image: str
+
+@app.post("/extract-text")
+def extract_text_from_image(data: OCRRequest):
+    try:
+        # Decode the base64 image
+        image_bytes = base64.b64decode(data.base64_image)
+        img = Image.open(io.BytesIO(image_bytes))
+        
+        # Run true deterministic OCR (No LLM hallucinations)
+        extracted_text = pytesseract.image_to_string(img)
+        
+        return {"extracted_text": extracted_text.strip()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

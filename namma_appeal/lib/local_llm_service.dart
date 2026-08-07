@@ -46,33 +46,33 @@ class LocalLLMService {
       throw Exception('Failed to connect to Local LLM: $e\nEnsure Ollama is running in your terminal.');
     }
   }
-  // ── LOCAL VISION AI (WEB OCR FALLBACK) ──
+  // ── REAL OCR ENGINE (FASTAPI + TESSERACT) ──
   static Future<String> extractTextFromImage(Uint8List imageBytes) async {
     try {
+      // 1. Convert directly to base64 (No need for magic byte checks anymore)
       final String base64Image = base64Encode(imageBytes);
 
+      // 2. Point to your local Python backend (Update this to your Render URL for production)
+      final String ocrApiUrl = 'http://127.0.0.1:8000/extract-text'; 
+
       final response = await http.post(
-        Uri.parse(ollamaBaseUrl),
+        Uri.parse(ocrApiUrl),
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true', 
         },
         body: jsonEncode({
-          'model': 'llava', // ── Targets the Vision Model ──
-          'prompt': 'You are an expert OCR system. Extract and transcribe all text from the provided document image accurately. Output strictly the extracted text and nothing else.',
-          'images': [base64Image],
-          'stream': false, 
+          'base64_image': base64Image,
         }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['response'].toString().trim();
+        return data['extracted_text'].toString().trim();
       } else {
-        throw Exception('Ollama Vision server returned status code: ${response.statusCode}');
+        throw Exception('OCR Engine error: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      throw Exception('Failed to connect to Vision AI: $e');
+      throw Exception('Failed to connect to true OCR: $e');
     }
   }
 }
