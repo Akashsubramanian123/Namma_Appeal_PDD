@@ -52,7 +52,7 @@ jobs:
 
       - name: Install Appium Server & Drivers
         run: |
-          npm install -g appium@next
+          npm install -g appium@latest
           appium driver install uiautomator2 || true
           appium driver install flutter || true
 
