@@ -63,8 +63,20 @@ jobs:
 
       - name: Build Flutter Release APK
         working-directory: ./namma_appeal
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          WEB_CLIENT_ID: ${{ secrets.WEB_CLIENT_ID }}
         run: |
           flutter pub get
+          # Generate the secrets.dart file dynamically
+          cat <<EOF > lib/secrets.dart
+          class Secrets {
+            static const String supabaseUrl = '$SUPABASE_URL';
+            static const String supabaseAnonKey = '$SUPABASE_ANON_KEY';
+            static const String webClientId = '$WEB_CLIENT_ID';
+          }
+          EOF
           flutter build apk --release
 
       - name: Verify & Validate Release APK Path
