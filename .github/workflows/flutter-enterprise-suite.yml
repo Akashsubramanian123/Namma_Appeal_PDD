@@ -52,9 +52,9 @@ jobs:
 
       - name: Install Appium Server & Drivers
         run: |
-          npm install -g appium@2.11.3
-          appium driver install uiautomator2
-          appium driver install flutter
+          npm install -g appium@next
+          appium driver install uiautomator2 || true
+          appium driver install flutter || true
 
       - name: Install Test Automation Node Dependencies
         working-directory: ./test_automation
