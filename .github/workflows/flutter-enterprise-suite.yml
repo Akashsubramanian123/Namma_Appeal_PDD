@@ -106,8 +106,7 @@ jobs:
           script: |
             adb devices
             if [ -f "namma_appeal/build/app/outputs/flutter-apk/app-release.apk" ]; then adb install namma_appeal/build/app/outputs/flutter-apk/app-release.apk; else adb install namma_appeal/build/app/outputs/apk/release/app-release.apk; fi
-            cd test_automation
-            node runner.js
+            node test_automation/runner.js
 
       - name: Upload Master Excel Report Artifact
         uses: actions/upload-artifact@v4
