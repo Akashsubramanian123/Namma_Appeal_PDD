@@ -105,11 +105,7 @@ jobs:
           arch: x86_64
           script: |
             adb devices
-            if [ -f "namma_appeal/build/app/outputs/flutter-apk/app-release.apk" ]; then
-              adb install namma_appeal/build/app/outputs/flutter-apk/app-release.apk
-            else
-              adb install namma_appeal/build/app/outputs/apk/release/app-release.apk
-            fi
+            if [ -f "namma_appeal/build/app/outputs/flutter-apk/app-release.apk" ]; then adb install namma_appeal/build/app/outputs/flutter-apk/app-release.apk; else adb install namma_appeal/build/app/outputs/apk/release/app-release.apk; fi
             cd test_automation
             node runner.js
 
