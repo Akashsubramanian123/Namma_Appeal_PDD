@@ -24,10 +24,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Flutter SDK
+      - name: Set up Flutter SDK (Modern Stable 3.29.0)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.2' # Stable version supporting all your dependencies cleanly
+          flutter-version: '3.29.0'
           channel: 'stable'
           cache: true
 
@@ -67,6 +67,19 @@ jobs:
           flutter pub get
           flutter build apk --release
 
+      - name: Verify & Validate Release APK Path
+        run: |
+          if [ -f "namma_appeal/build/app/outputs/flutter-apk/app-release.apk" ]; then
+            echo "Release APK found at standard path: namma_appeal/build/app/outputs/flutter-apk/app-release.apk"
+          elif [ -f "namma_appeal/build/app/outputs/apk/release/app-release.apk" ]; then
+            echo "Release APK found at secondary path: namma_appeal/build/app/outputs/apk/release/app-release.apk"
+            mkdir -p namma_appeal/build/app/outputs/flutter-apk
+            cp namma_appeal/build/app/outputs/apk/release/app-release.apk namma_appeal/build/app/outputs/flutter-apk/app-release.apk
+          else
+            echo "Error: Release APK build artifact missing!"
+            exit 1
+          fi
+
       - name: Enable KVM for Android Emulator Acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm-rules.rules
@@ -81,8 +94,11 @@ jobs:
           profile: Pixel_6
           script: |
             adb devices
-            # FIXED: Correct path to APK output
-            adb install namma_appeal/build/app/outputs/apk/release/app-release.apk
+            if [ -f "namma_appeal/build/app/outputs/flutter-apk/app-release.apk" ]; then
+              adb install namma_appeal/build/app/outputs/flutter-apk/app-release.apk
+            else
+              adb install namma_appeal/build/app/outputs/apk/release/app-release.apk
+            fi
             cd test_automation
             node runner.js
 

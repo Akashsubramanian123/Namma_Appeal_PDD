@@ -24,10 +24,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Flutter SDK
+      - name: Set up Flutter SDK (Modern Stable 3.29.0)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.0' # Or use 'stable'
+          flutter-version: '3.29.0'
           channel: 'stable'
           cache: true
 
@@ -36,22 +36,94 @@ jobs:
         with:
           node-version: '20.x'
           cache: 'npm'
+          cache-dependency-path: 'test_automation/package-lock.json'
 
-      - name: Install Appium & Dependencies
+      - name: Set up k6 Load Testing Tool
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Set up OWASP ZAP Vulnerability Scanner
+        run: |
+          docker pull zaproxy/zap-stable:latest || true
+
+      - name: Install Appium Server & Drivers
         run: |
           npm install -g appium@next
           appium driver install uiautomator2 || true
           appium driver install flutter || true
 
-      - name: Run Test Suite
+      - name: Install Test Automation Node Dependencies
         working-directory: ./test_automation
         run: |
-          npm install
-          node runner.js
+          npm ci || npm install
 
-      - name: Upload Master Excel Report
+      - name: Build Flutter Release APK
+        working-directory: ./namma_appeal
+        run: |
+          flutter pub get
+          flutter build apk --release
+
+      - name: Verify & Validate Release APK Path
+        run: |
+          if [ -f "namma_appeal/build/app/outputs/flutter-apk/app-release.apk" ]; then
+            echo "Release APK found at standard path: namma_appeal/build/app/outputs/flutter-apk/app-release.apk"
+          elif [ -f "namma_appeal/build/app/outputs/apk/release/app-release.apk" ]; then
+            echo "Release APK found at secondary path: namma_appeal/build/app/outputs/apk/release/app-release.apk"
+            mkdir -p namma_appeal/build/app/outputs/flutter-apk
+            cp namma_appeal/build/app/outputs/apk/release/app-release.apk namma_appeal/build/app/outputs/flutter-apk/app-release.apk
+          else
+            echo "Error: Release APK build artifact missing!"
+            exit 1
+          fi
+
+      - name: Enable KVM for Android Emulator Acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm-rules.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+
+      - name: Spawn Android Emulator (API 34) & Run 400-Case Test Suite
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: Pixel_6
+          script: |
+            adb devices
+            if [ -f "namma_appeal/build/app/outputs/flutter-apk/app-release.apk" ]; then
+              adb install namma_appeal/build/app/outputs/flutter-apk/app-release.apk
+            else
+              adb install namma_appeal/build/app/outputs/apk/release/app-release.apk
+            fi
+            cd test_automation
+            node runner.js
+
+      - name: Upload Master Excel Report Artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: Namma_Appeal_Master_Enterprise_Report
           path: test_automation/reports/Namma_Appeal_Master_Enterprise_Report.xlsx
+          retention-days: 30
+
+      - name: Upload HTML Master Dashboard Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Master_HTML_Executive_Dashboard
+          path: test_automation/reports/master-dashboard.html
+          retention-days: 30
+
+      - name: Upload Failure Screenshots & Logs Artifact
+        uses: actions/upload-artifact@v4
+        if: failure() || always()
+        with:
+          name: Test_Failures_And_Logs
+          path: |
+            test_automation/reports/failures/
+            test_automation/logs/
+          retention-days: 30
