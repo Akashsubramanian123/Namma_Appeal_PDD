@@ -27,7 +27,7 @@ jobs:
       - name: Set up Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.0'
+          flutter-version: '3.22.2' # Stable version supporting all your dependencies cleanly
           channel: 'stable'
           cache: true
 
@@ -81,7 +81,8 @@ jobs:
           profile: Pixel_6
           script: |
             adb devices
-            adb install namma_appeal/build/app/outputs/flutter-apk/app-release.apk
+            # FIXED: Correct path to APK output
+            adb install namma_appeal/build/app/outputs/apk/release/app-release.apk
             cd test_automation
             node runner.js
 
