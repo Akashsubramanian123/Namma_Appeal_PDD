@@ -51,7 +51,7 @@ dependencies:
   timezone: ^0.9.4
   shimmer: ^3.0.0
   google_fonts: ^8.2.0
-  fl_chart: ^1.2.0
+  fl_chart: ^0.68.0
   flutter_svg: ^2.0.10
 
 dev_dependencies:
