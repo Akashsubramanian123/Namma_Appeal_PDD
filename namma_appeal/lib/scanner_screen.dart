@@ -93,6 +93,28 @@ class _ScannerScreenState extends State<ScannerScreen> {
         extractedText = await LocalLLMService.extractTextFromImage(bytes);
       }
 
+      // ── THE FIX: CLEAR _scannedText SO THE BUTTON HIDES ──
+      if (!_isValidRejectionLetter(extractedText)) {
+        setState(() {
+          _isProcessing = false;
+          _imageBytes = null; 
+          _scannedText = ''; // <-- This explicitly hides the text block and the Generate button!
+          _predictionResult = null;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('this is not a rti rejection letter ,try again'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+        return; // Halt execution
+      }
+      // ──────────────────────────────────────────────────────
+
       Map<String, dynamic>? mlPrediction;
       if (extractedText.isNotEmpty) {
         try {
@@ -264,6 +286,36 @@ class _ScannerScreenState extends State<ScannerScreen> {
       }
     }
   }
+  bool _isValidRejectionLetter(String extractedText) {
+    String text = extractedText.toLowerCase();
+
+    // Block empty text or generic photos immediately
+    if (text.trim().isEmpty || text.length < 20) {
+      return false;
+    }
+
+    // Required keywords for an RTI rejection
+    List<String> requiredKeywords = [
+      'rti',
+      'right to information',
+      'reject',
+      'rejection',
+      'section 8',
+      'section 9',
+      'denied',
+      'cannot be provided'
+    ];
+
+    int matchCount = 0;
+    for (String keyword in requiredKeywords) {
+      if (text.contains(keyword)) {
+        matchCount++;
+      }
+    }
+
+    // Require at least 2 keywords to prove it is a legitimate rejection letter
+    return matchCount >= 2;
+  }
   Future<bool?> _showRoutingConfirmation(BuildContext context, String destinationName, String reason) async {
     return showDialog<bool>(
       context: context,
@@ -312,8 +364,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
             )
           : null,
       appBar: AppBar(
-        title: const Text('Offline Document Scanner'),
-        backgroundColor: Colors.blueGrey[900],
+        title: const Text('Namma Appeal Document Scanner'),
+        backgroundColor: const Color.fromARGB(255, 31, 46, 255),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -345,11 +397,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton.icon(
-                  onPressed: _isProcessing ? null : () => _pickAndScanImage(ImageSource.camera),
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text('Camera'),
-                ),
+                if (!kIsWeb)
+                  ElevatedButton.icon(
+                    onPressed: _isProcessing ? null : () => _pickAndScanImage(ImageSource.camera),
+                    icon: const Icon(Icons.camera_alt),
+                    label: const Text('Camera'),
+                  ),
                 ElevatedButton.icon(
                   onPressed: _isProcessing ? null : () => _pickAndScanImage(ImageSource.gallery),
                   icon: const Icon(Icons.photo_library),

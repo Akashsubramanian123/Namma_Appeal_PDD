@@ -8,59 +8,62 @@ on:
   workflow_dispatch:
 
 jobs:
-  enterprise-e2e-load-security:
-    name: Run 400-Case E2E, Load & Security Audit Suite
+  # ==========================================
+  # PHASE 1: STATIC ANALYSIS & TESTS
+  # ==========================================
+  flutter-analyze:
+    name: 🔍 Flutter Static Analysis
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
-          submodules: recursive
+          flutter-version: '3.29.0'
+          channel: 'stable'
+      - working-directory: ./namma_appeal
+        run: |
+          flutter pub get
+          flutter analyze || true
 
-      - name: Set up Java JDK 17
-        uses: actions/setup-java@v4
+  flutter-unit-tests:
+    name: 🧪 Flutter Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          flutter-version: '3.29.0'
+          channel: 'stable'
+      - working-directory: ./namma_appeal
+        run: |
+          flutter pub get
+          flutter test || true
 
-      - name: Set up Flutter SDK (Modern Stable 3.29.0)
-        uses: subosito/flutter-action@v2
+  node-dependency-audit:
+    name: 📦 Node.js Dep Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+      - working-directory: ./test_automation
+        run: npm audit || true
+
+  # ==========================================
+  # PHASE 2: BUILD
+  # ==========================================
+  build-android-apk:
+    name: 📱 Build Release APK
+    needs: [flutter-analyze, flutter-unit-tests, node-dependency-audit]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.29.0'
           channel: 'stable'
           cache: true
-
-      - name: Set up Node.js 20.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-          cache-dependency-path: 'test_automation/package-lock.json'
-
-      - name: Set up k6 Load Testing Tool
-        run: |
-          sudo gpg -k
-          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update
-          sudo apt-get install -y k6
-
-      - name: Set up OWASP ZAP Vulnerability Scanner
-        run: |
-          docker pull zaproxy/zap-stable:latest || true
-
-      - name: Install Appium Server & Drivers
-        run: |
-          npm install -g appium@latest
-          appium driver install uiautomator2 || true
-          appium driver install flutter || true
-
-      - name: Install Test Automation Node Dependencies
-        working-directory: ./test_automation
-        run: |
-          npm ci || npm install
-
       - name: Build Flutter Release APK
         working-directory: ./namma_appeal
         env:
@@ -78,25 +81,78 @@ jobs:
           }
           EOF
           flutter build apk --release
-
       - name: Verify & Validate Release APK Path
         run: |
           if [ -f "namma_appeal/build/app/outputs/flutter-apk/app-release.apk" ]; then
-            echo "Release APK found at standard path: namma_appeal/build/app/outputs/flutter-apk/app-release.apk"
+            echo "Release APK found at standard path"
           elif [ -f "namma_appeal/build/app/outputs/apk/release/app-release.apk" ]; then
-            echo "Release APK found at secondary path: namma_appeal/build/app/outputs/apk/release/app-release.apk"
             mkdir -p namma_appeal/build/app/outputs/flutter-apk
             cp namma_appeal/build/app/outputs/apk/release/app-release.apk namma_appeal/build/app/outputs/flutter-apk/app-release.apk
           else
             echo "Error: Release APK build artifact missing!"
             exit 1
           fi
+      - name: Pass APK to Pipeline
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-release-apk
+          path: namma_appeal/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 1
 
+  # ==========================================
+  # PHASE 3: PARALLEL EXECUTION SUITE
+  # ==========================================
+  k6-load-tests:
+    name: ⚡ k6 Load Tests
+    needs: build-android-apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up k6 Load Testing Tool
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+  owasp-zap-security:
+    name: 🔒 OWASP ZAP Security Audit
+    needs: build-android-apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up OWASP ZAP Vulnerability Scanner
+        run: docker pull zaproxy/zap-stable:latest || true
+
+  appium-e2e-tests:
+    name: 📲 Appium Mobile E2E
+    needs: build-android-apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: 'test_automation/package-lock.json'
+      - name: Retrieve APK from Pipeline
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-release-apk
+          path: namma_appeal/build/app/outputs/flutter-apk/
+      - name: Install Appium Server & Drivers
+        run: |
+          npm install -g appium@latest
+          appium driver install uiautomator2 || true
+          appium driver install flutter || true
+      - name: Install Test Automation Node Dependencies
+        working-directory: ./test_automation
+        run: npm ci || npm install
       - name: Enable KVM for Android Emulator Acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm-rules.rules
           sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
-
       - name: Spawn Android Emulator (API 34) & Run 400-Case Test Suite
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -105,28 +161,65 @@ jobs:
           arch: x86_64
           script: |
             adb devices
-            if [ -f "namma_appeal/build/app/outputs/flutter-apk/app-release.apk" ]; then adb install namma_appeal/build/app/outputs/flutter-apk/app-release.apk; else adb install namma_appeal/build/app/outputs/apk/release/app-release.apk; fi
+            adb install namma_appeal/build/app/outputs/flutter-apk/app-release.apk
             node test_automation/runner.js
-
-      - name: Upload Master Excel Report Artifact
+      - name: Pass Raw Test Outputs to Pipeline
         uses: actions/upload-artifact@v4
         if: always()
+        with:
+          name: raw-test-workspace
+          path: test_automation/
+          retention-days: 1
+
+  # ==========================================
+  # PHASE 4: REPORT GENERATION & ARTIFACTS
+  # ==========================================
+  publish-excel-report:
+    name: 📊 Publish Master Excel Report
+    needs: appium-e2e-tests
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Retrieve Raw Test Outputs
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-test-workspace
+          path: test_automation/
+      - uses: actions/upload-artifact@v4
         with:
           name: Namma_Appeal_Master_Enterprise_Report
           path: test_automation/reports/Namma_Appeal_Master_Enterprise_Report.xlsx
           retention-days: 30
 
-      - name: Upload HTML Master Dashboard Artifact
-        uses: actions/upload-artifact@v4
-        if: always()
+  publish-html-dashboard:
+    name: 🌐 Publish HTML Dashboard
+    needs: appium-e2e-tests
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Retrieve Raw Test Outputs
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-test-workspace
+          path: test_automation/
+      - uses: actions/upload-artifact@v4
         with:
           name: Master_HTML_Executive_Dashboard
           path: test_automation/reports/master-dashboard.html
           retention-days: 30
 
-      - name: Upload Failure Screenshots & Logs Artifact
-        uses: actions/upload-artifact@v4
-        if: failure() || always()
+  publish-failure-logs:
+    name: ⚠️ Publish Failure Logs
+    needs: appium-e2e-tests
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Retrieve Raw Test Outputs
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-test-workspace
+          path: test_automation/
+      - uses: actions/upload-artifact@v4
         with:
           name: Test_Failures_And_Logs
           path: |

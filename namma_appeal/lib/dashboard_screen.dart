@@ -165,22 +165,6 @@ class DashboardOverviewScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Top Quick Actions ──
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.document_scanner),
-                    label: const Text('Scan Rejection Letter (Offline)'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      backgroundColor: Colors.blueGrey[800],
-                      foregroundColor: Colors.white,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ScannerScreen()),
-                      );
-                    },
-                  ),
                   if (isMobile)
                     Column(
                       children: [
